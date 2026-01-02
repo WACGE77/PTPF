@@ -1,5 +1,14 @@
 // src/utils/iconMap.ts
-import { User, Key, Document, House, Setting, Monitor, FullScreen ,ArrowDown} from '@element-plus/icons-vue'
+import {
+  User,
+  Key,
+  Document,
+  House,
+  Setting,
+  Monitor,
+  FullScreen,
+  ArrowDown,
+} from '@element-plus/icons-vue'
 
 export function getIconComponent(iconName: string) {
   // 检查 iconName 是否是 iconMap 的有效 key

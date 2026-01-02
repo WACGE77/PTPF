@@ -5,6 +5,11 @@ const userApi = {
   addtUser: (data: Record<string, unknown>) => requests.post('/rbac/user/add/', data),
   deleteUser: (data: Record<string, unknown>) => requests.post('/rbac/user/delete/', data),
   updateUser: (data: Record<string, unknown>) => requests.post('/rbac/user/modify/', data),
+  resetPassword: (data: Record<string, unknown>) =>
+    requests.post('/rbac/user/reset-password/', data),
+  resetAnyPassword: (user_id: number, data: Record<string, unknown>) =>
+    requests.post('/rbac/user/' + user_id + '/reset-password/', data),
+  userInfo: () => requests.post('/rbac/user/detail/', {}),
 }
 
 const roleApi = {
@@ -34,7 +39,7 @@ const voucherApi = {
 
 const authApi = {
   login: (data: Record<string, unknown>) => requests.post('/rbac/login/', data),
-  logout: (data: Record<string, unknown>) => requests.post('/rbac/logout/', data),
+  logout: () => requests.post('/rbac/logout/', {}),
   refresh: (data: Record<string, unknown>) => requests.post('/rbac/refresh/', data),
 }
 

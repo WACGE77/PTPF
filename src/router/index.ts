@@ -8,9 +8,11 @@ const router = createRouter({
     {
       path: '/home',
       component: () => import('../views/HomeView.vue'),
+      redirect: '/overview',
       //以下现为静态,后续改为动态
       children: [
         //{path:'/profile',component:()=>import('../views/profile.vue')}
+        { path: '/overview', component: () => import('../views/overview/IndexView.vue') },
         { path: '/terminal', component: () => import('../views/terminal/IndexView.vue') },
       ],
     },

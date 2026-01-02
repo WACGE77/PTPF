@@ -28,8 +28,8 @@
       <div class="header">
         <el-dropdown trigger="click" @command="handleCommand">
           <span class="el-dropdown-link">
-            <el-avatar size="small" src="https://via.placeholder.com/32" />
-            test
+            <el-avatar size="small" :src="userPro.user.avatar" />
+            {{ userPro.user.name }}
             <el-icon class="el-icon--right"
               ><component :is="getIconComponent('ArrowDown')"
             /></el-icon>
@@ -58,17 +58,19 @@
 
 <script lang="ts" setup>
 import router from '@/router'
+import { userPro } from '@/main'
 import { getIconComponent } from '@/utils/iconMap'
-interface MenuItemObject {
-  id: number
-  name: string
-  path: string
-  component: string
-  icon: string
-  children?: MenuItemObject[]
-}
+import type { MenuItemObject } from '@/struct/index'
+import api from '@/api'
 //测试数据
 const items: MenuItemObject[] = [
+  {
+    id: 1,
+    name: '概述',
+    path: '/overview',
+    component: '../views/overview/IndexView.vue',
+    icon: 'House',
+  },
   {
     id: 1,
     name: 'Web终端',
@@ -83,7 +85,17 @@ const handleClose = () => {}
 const handelSelect = (index: string) => {
   router.push(index)
 }
-const handleCommand = () => {}
+const logout = async () => {
+  localStorage.clear()
+  await api.authApi.logout()
+  await userPro.clear()
+  router.push('/login')
+}
+const handleCommand = (command: string) => {
+  if (command == 'logout') {
+    logout()
+  }
+}
 </script>
 
 <style scoped>

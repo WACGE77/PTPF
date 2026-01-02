@@ -11,3 +11,10 @@ app.use(ElementPlus)
 app.use(createPinia())
 app.use(router)
 app.mount('#app')
+
+import { userProfile } from './stores/userProfile'
+export const userPro = userProfile()
+userPro.getuser()
+export default {
+  userPro,
+}
