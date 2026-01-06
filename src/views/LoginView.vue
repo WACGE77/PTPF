@@ -3,7 +3,7 @@
     <div class="login-box">
       <div class="login-header">
         <el-icon :size="48" color="#1890ff">
-          <Monitor />
+          <component :is="getIconComponent('Monitor')" />
         </el-icon>
         <h2>堡垒机管理系统</h2>
       </div>
@@ -18,7 +18,7 @@
         <el-form-item prop="username">
           <el-input v-model="loginForm.username" placeholder="请输入用户名" size="large" clearable>
             <template #prefix>
-              <el-icon><User /></el-icon>
+              <el-icon><component :is="getIconComponent('User')" /></el-icon>
             </template>
           </el-input>
         </el-form-item>
@@ -32,7 +32,7 @@
             show-password
           >
             <template #prefix>
-              <el-icon><Lock /></el-icon>
+              <el-icon><component :is="getIconComponent('Lock')" /></el-icon>
             </template>
           </el-input>
         </el-form-item>
@@ -55,11 +55,12 @@
 
 <script lang="ts" setup>
 import { reactive, ref } from 'vue'
-import { User, Lock, Monitor } from '@element-plus/icons-vue'
 import api from '@/api'
 import { ElMessage } from 'element-plus'
 import router from '@/router'
 import type { FormInstance } from 'element-plus'
+import { userPro } from '@/main'
+import { getIconComponent } from '@/utils/iconMap'
 const loading = ref(false)
 const loginFormRef = ref<FormInstance | null>(null)
 const loginForm = reactive({
@@ -85,6 +86,7 @@ const handleLogin = async () => {
         if (result.data.code == 200) {
           ElMessage.success('登录成功')
           localStorage.setItem('token', result.data.token.access)
+          await userPro.getuser()
           router.push('/home')
         } else {
           ElMessage.error(result.data.msg)

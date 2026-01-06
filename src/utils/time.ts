@@ -1,5 +1,5 @@
-function formatISODate(isoString: string | null): string {
-  if (isoString == null) return ''
+function formatISODate(isoString: string | null | undefined): string {
+  if (!isoString) return ''
   const date = new Date(isoString)
   return new Intl.DateTimeFormat('zh-CN', {
     year: 'numeric',

@@ -2,9 +2,10 @@ import requests from '@/requests'
 
 const userApi = {
   getUser: (data: Record<string, unknown>) => requests.post('/rbac/user/list/', data),
-  addtUser: (data: Record<string, unknown>) => requests.post('/rbac/user/add/', data),
+  addUser: (data: Record<string, unknown>) => requests.post('/rbac/user/add/', data),
   deleteUser: (data: Record<string, unknown>) => requests.post('/rbac/user/delete/', data),
-  updateUser: (data: Record<string, unknown>) => requests.post('/rbac/user/modify/', data),
+  updateUser: (user_id: number, data: Record<string, unknown>) =>
+    requests.post('/rbac/user/' + user_id + '/modify/', data),
   resetPassword: (data: Record<string, unknown>) =>
     requests.post('/rbac/user/reset-password/', data),
   resetAnyPassword: (user_id: number, data: Record<string, unknown>) =>
@@ -14,9 +15,10 @@ const userApi = {
 
 const roleApi = {
   getRole: (data: Record<string, unknown>) => requests.post('/rbac/role/list/', data),
-  addtRole: (data: Record<string, unknown>) => requests.post('/rbac/role/add/', data),
+  addRole: (data: Record<string, unknown>) => requests.post('/rbac/role/add/', data),
   deleteRole: (data: Record<string, unknown>) => requests.post('/rbac/role/delete/', data),
-  updateRole: (data: Record<string, unknown>) => requests.post('/rbac/role/modify/', data),
+  updateRole: (role_id: number, data: Record<string, unknown>) =>
+    requests.post('/rbac/role/' + role_id + '/modify/', data),
 }
 
 const resourceApi = {
@@ -26,6 +28,8 @@ const resourceApi = {
     requests.post('/resource/resource/delete/', data),
   updateResource: (data: Record<string, unknown>) =>
     requests.post('/resource/resource/modify/', data),
+  bindVouchers: (data: Record<string, unknown>) =>
+    requests.post('/resource/resourcebindvoucher/', data),
 }
 
 const voucherApi = {
@@ -48,7 +52,8 @@ const permissionApi = {
   getRolePermission: (role_id: number, data: Record<string, unknown>) =>
     requests.post('/perm/base-auth/' + role_id + '/get/', data),
   setRolePermission: (data: Record<string, unknown>) => requests.post('/perm/base-auth/mod/', data),
-  getUserRole: (user_id: number, data: Record<string, unknown>) =>
+  getUserRole: (user_id: number) => requests.post('/perm/role-bind/' + user_id + '/get/', {}),
+  setUserRole: (user_id: number, data: Record<string, unknown>) =>
     requests.post('/perm/role-bind/' + user_id + '/modify/', data),
 }
 

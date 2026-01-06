@@ -4,20 +4,7 @@ import { Terminal } from 'xterm'
 import type { IDisposable } from 'xterm'
 import { FitAddon } from 'xterm-addon-fit'
 import 'xterm/css/xterm.css'
-interface Auth {
-  token: string | null
-  resource_id: number
-  voucher_id: number
-}
-interface Option {
-  cols: number
-  rows: number
-}
-interface ShellCommand {
-  type: number
-  data: Option | Auth | string
-}
-
+import type { TerminalData } from '@/struct'
 export class Shell {
   //private
   public term: Terminal
@@ -28,6 +15,7 @@ export class Shell {
   private lock: boolean = false
   private OnData: IDisposable | null = null
   private OnResize: IDisposable | null = null
+  public cleanup?: () => void
   constructor() {
     this.term = new Terminal({
       fontSize: 14,
@@ -40,14 +28,15 @@ export class Shell {
     this.fitAddon = new FitAddon()
     this.term.loadAddon(this.fitAddon)
   }
-  public async connect(auth: ShellCommand) {
+  public async connect(auth: TerminalData) {
     if (!this.status && !this.lock) {
       this.lock = true
-      this.websocket = new WebSocket(requests.getWsBaseUrl() + '/terminal/ssh/')
+      this.websocket = new WebSocket(requests.getWsBaseUrl() + `/terminal/ssh/`)
       this.websocket.onopen = () => {
         this.status = true
         this.websocket?.send(JSON.stringify(auth))
         this.resize()
+        this.term.write('正在连接服务器...\r\n')
         this.lock = false
       }
       this.websocket.onmessage = (event: MessageEvent) => {
@@ -74,6 +63,7 @@ export class Shell {
 
   public resize() {
     if (this.status) {
+      this.fitAddon.fit()
       const option = {
         type: 1,
         data: {
@@ -85,13 +75,24 @@ export class Shell {
     }
   }
 
-  public mount(terminalRef: Ref) {
-    this.container = terminalRef
-    this.term.open(terminalRef.value!)
+  public mount(containerEl: HTMLElement) {
+    this.term.open(containerEl)
+
     this.fitAddon.fit()
+
+    const resizeHandler = () => {
+      this.fitAddon.fit()
+    }
+
+    window.addEventListener('resize', resizeHandler)
+
+    this.cleanup = () => {
+      window.removeEventListener('resize', resizeHandler)
+      this.term.dispose()
+    }
   }
 
-  public colse() {
+  public close() {
     this.websocket?.close()
     this.term.dispose()
   }

@@ -77,23 +77,26 @@ const loading = ref(false)
 
 const loginRecords = ref<LoginRecord[]>([])
 const sessions = ref<SessionRecord[]>([])
+
 const loginInfo = async () => {
   const result = await api.auditApi.getSelfLogin({ page_size: 10, desc: true })
   if (result.data.code == 200) {
-    loginRecords.value = result.data.data
+    loginRecords.value = result.data.data.logs
     for (const record of loginRecords.value) {
       record.date = time.formatISODate(record.date)
     }
+    console.log(loginRecords.value)
   }
 }
 const sessionlog = async () => {
   const result = await api.auditApi.getSelfSession({ page_size: 10, desc: true })
   if (result.data.code == 200) {
-    sessions.value = result.data.data
+    sessions.value = result.data.data.logs
     for (const item of sessions.value) {
       item.start_time = time.formatISODate(item.start_time)
       item.end_time = time.formatISODate(item.end_time)
     }
+    console.log(loginRecords.value)
   }
 }
 loginInfo()

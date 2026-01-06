@@ -8,6 +8,15 @@ import {
   Monitor,
   FullScreen,
   ArrowDown,
+  ArrowRight,
+  UserFilled,
+  Delete,
+  Edit,
+  Plus,
+  Lock,
+  Van,
+  RefreshRight,
+  Close,
 } from '@element-plus/icons-vue'
 
 export function getIconComponent(iconName: string) {
@@ -29,5 +38,14 @@ export const iconMap = {
   Monitor,
   FullScreen,
   ArrowDown,
+  ArrowRight,
+  UserFilled,
+  Delete,
+  Edit,
+  Plus,
+  Lock,
+  Van,
+  RefreshRight,
+  Close,
 }
 export type IconName = keyof typeof iconMap
