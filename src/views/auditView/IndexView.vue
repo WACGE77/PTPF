@@ -95,8 +95,26 @@
               <el-table-column prop="end_time" label="结束时间" width="180" />
               <el-table-column prop="status" label="状态" width="100">
                 <template #default="{ row }">
-                  <el-tag :type="row.status === 'active' ? 'success' : 'info'">
-                    {{ row.status === 'active' ? '活跃' : '关闭' }}
+                  <el-tag
+                    :type="
+                      row.status === 'active'
+                        ? 'success'
+                        : row.status === 'close'
+                          ? 'info'
+                          : row.status === 'faild'
+                            ? 'danger'
+                            : 'default'
+                    "
+                  >
+                    {{
+                      row.status === 'active'
+                        ? '活跃'
+                        : row.status === 'close'
+                          ? '关闭'
+                          : row.status === 'faild'
+                            ? '失败'
+                            : '未知'
+                    }}
                   </el-tag>
                 </template>
               </el-table-column>
