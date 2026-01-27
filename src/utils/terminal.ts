@@ -8,7 +8,7 @@ import type { TerminalData } from '@/struct'
 export class Shell {
   //private
   public term: Terminal
-  private fitAddon: FitAddon
+  private readonly fitAddon: FitAddon
   private websocket: WebSocket | null = null
   private container: Ref | null = null
   private status: boolean = false
@@ -28,13 +28,16 @@ export class Shell {
     this.fitAddon = new FitAddon()
     this.term.loadAddon(this.fitAddon)
   }
-  public async connect(auth: TerminalData) {
+  public async connect(resource:number,voucher:number,token:string) {
     if (!this.status && !this.lock) {
       this.lock = true
-      this.websocket = new WebSocket(requests.getWsBaseUrl() + `/terminal/ssh/`)
+      const params = new URLSearchParams()
+      params.append('token',token)
+      params.append('resource',String(resource))
+      params.append('voucher',String(voucher))
+      this.websocket = new WebSocket(requests.getWsBaseUrl() + `/terminal/ssh/?${params.toString()}`)
       this.websocket.onopen = () => {
         this.status = true
-        this.websocket?.send(JSON.stringify(auth))
         this.resize()
         this.term.write('正在连接服务器...\r\n')
         this.lock = false
@@ -72,6 +75,7 @@ export class Shell {
         },
       }
       this.websocket?.send(JSON.stringify(option))
+      console.log(option,JSON.stringify(option))
     }
   }
 

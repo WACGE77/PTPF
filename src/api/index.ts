@@ -1,44 +1,44 @@
 import requests from '@/requests'
 
 const userApi = {
-  getUser: (data: Record<string, unknown>) => requests.post('/rbac/user/list/', data),
+  getUser: (data: Record<string, unknown>) => requests.get('/rbac/user/get/', data),
   addUser: (data: Record<string, unknown>) => requests.post('/rbac/user/add/', data),
-  deleteUser: (data: Record<string, unknown>) => requests.post('/rbac/user/delete/', data),
-  updateUser: (user_id: number, data: Record<string, unknown>) =>
-    requests.post('/rbac/user/' + user_id + '/modify/', data),
-  resetPassword: (data: Record<string, unknown>) =>
-    requests.post('/rbac/user/reset-password/', data),
-  resetAnyPassword: (user_id: number, data: Record<string, unknown>) =>
-    requests.post('/rbac/user/' + user_id + '/reset-password/', data),
+  deleteUser: (data: Record<string, unknown>) => requests.post('/rbac/user/del/', data),
+  updateUser: (data: Record<string, unknown>) => requests.post('/rbac/user/edit/', data),
+  resetPassword: (data: Record<string, unknown>) => requests.post('/rbac/user/reset-password/', data),
   userInfo: () => requests.post('/rbac/user/detail/', {}),
 }
 
 const roleApi = {
-  getRole: (data: Record<string, unknown>) => requests.post('/rbac/role/list/', data),
+  getRole: (data: Record<string, unknown>) => requests.get('/rbac/role/get/', data),
   addRole: (data: Record<string, unknown>) => requests.post('/rbac/role/add/', data),
-  deleteRole: (data: Record<string, unknown>) => requests.post('/rbac/role/delete/', data),
-  updateRole: (role_id: number, data: Record<string, unknown>) =>
-    requests.post('/rbac/role/' + role_id + '/modify/', data),
+  deleteRole: (data: Record<string, unknown>) => requests.post('/rbac/role/del/', data),
+  updateRole: (role_id: number, data: Record<string, unknown>) => requests.post('/rbac/role/edit',data)
+}
+
+const groupApi = {
+  getGroup:(data: Record<string, unknown>) => requests.get('/resource/group/get/',data),
+  deleteGroup:(data: Record<string, unknown>) => requests.post('/resource/group/del/',data),
+  updateGroup:(data: Record<string, unknown>) => requests.post('/resource/group/edit/',data),
+  addGroup:(data: Record<string, unknown>) => requests.post('/resource/group/add/',data)
 }
 
 const resourceApi = {
-  getResource: (data: Record<string, unknown>) => requests.post('/resource/resource/list/', data),
-  addtResource: (data: Record<string, unknown>) => requests.post('/resource/resource/add/', data),
+  getResource: (data: Record<string, unknown>) => requests.get('/resource/resource/get/', data),
+  addResource: (data: Record<string, unknown>) => requests.post('/resource/resource/add/', data),
   deleteResource: (data: Record<string, unknown>) =>
-    requests.post('/resource/resource/delete/', data),
+    requests.post('/resource/resource/del/', data),
   updateResource: (data: Record<string, unknown>) =>
-    requests.post('/resource/resource/modify/', data),
-  bindVouchers: (data: Record<string, unknown>) =>
-    requests.post('/resource/resourcebindvoucher/', data),
+    requests.post('/resource/resource/edit/', data)
 }
 
 const voucherApi = {
-  getVoucher: (data: Record<string, unknown>) => requests.post('/resource/voucher/list/', data),
-  addtVoucher: (data: Record<string, unknown>) => requests.post('/resource/voucher/add/', data),
+  getVoucher: (data: Record<string, unknown>) => requests.get('/resource/voucher/get/', data),
+  addVoucher: (data: Record<string, unknown>) => requests.post('/resource/voucher/add/', data),
   deleteVoucher: (data: Record<string, unknown>) =>
-    requests.post('/resource/voucher/delete/', data),
+    requests.post('/resource/voucher/del/', data),
   updateVoucher: (data: Record<string, unknown>) =>
-    requests.post('/resource/voucher/modify/', data),
+    requests.post('/resource/voucher/edit/', data),
 }
 
 const authApi = {
@@ -48,22 +48,16 @@ const authApi = {
 }
 
 const permissionApi = {
-  getPermission: (data: Record<string, unknown>) => requests.post('/rbac/perm/', data),
-  getRolePermission: (role_id: number, data: Record<string, unknown>) =>
-    requests.post('/perm/base-auth/' + role_id + '/get/', data),
-  setRolePermission: (data: Record<string, unknown>) => requests.post('/perm/base-auth/mod/', data),
-  getUserRole: (user_id: number) => requests.post('/perm/role-bind/' + user_id + '/get/', {}),
-  setUserRole: (user_id: number, data: Record<string, unknown>) =>
-    requests.post('/perm/role-bind/' + user_id + '/modify/', data),
+  getSystemPermission:(data:Record<string, unknown>) => requests.get('rbac/role/get/permission/',data),
+  setSystemPermission:(data:Record<string, unknown>) => requests.post('rbac/group-auth/edit/',data),
+  getGroupPermission:(data:Record<string, unknown>) => requests.post('/rbac/group-auth/edit/',data),
+  userBind:(data:Record<string, unknown>) => requests.post('/rbac/user/role/',data)
 }
 
 const auditApi = {
-  getAllLogin: (data: Record<string, unknown>) => requests.post('/audit/all/login/', data),
-  getALLOpera: (data: Record<string, unknown>) => requests.post('/audit/all/opera/', data),
-  getAllSession: (data: Record<string, unknown>) => requests.post('/audit/all/session/', data),
-  getSelfLogin: (data: Record<string, unknown>) => requests.post('/audit/self/login/', data),
-  getSelfOpera: (data: Record<string, unknown>) => requests.post('/audit/self/opera/', data),
-  getSelfSession: (data: Record<string, unknown>) => requests.post('/audit/self/session/', data),
+  loginLog: (data:Record<string, unknown>) => requests.get('/audit/login/get/',data),
+  operaLog: (data:Record<string, unknown>) => requests.get('/audit/opera/get/',data),
+  sessionLog: (data:Record<string, unknown>) => requests.get('/audit/session/get/',data)
 }
 
 export default {
@@ -74,4 +68,5 @@ export default {
   authApi,
   permissionApi,
   auditApi,
+  groupApi
 }

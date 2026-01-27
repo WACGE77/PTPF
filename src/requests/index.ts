@@ -42,17 +42,19 @@ requests.interceptors.request.use(
 
 requests.interceptors.response.use(
   async (response) => {
-    if (response.data.code === 401) {
-      const success = await refreshToken()
-      if (success) {
-        return requests(response.config)
-      } else {
-        router.push('/login')
-      }
-    }
     return response
   },
-  (error) => {
+  async(error) => {
+    const originalConfig = error.response?.config
+    if (error.response?.status === 401 && originalConfig && !originalConfig._retry) {
+      originalConfig._retry = true
+      const success = await refreshToken()
+      if (success) {
+        return requests(error.response?.config)
+      } else {
+        await router.push('/login')
+      }
+    }
     return Promise.reject(error)
   },
 )
