@@ -38,6 +38,7 @@ export class Shell {
       this.websocket = new WebSocket(requests.getWsBaseUrl() + `/terminal/ssh/?${params.toString()}`)
       this.websocket.onopen = () => {
         this.status = true
+        this.fitAddon.fit()
         this.resize()
         this.term.write('正在连接服务器...\r\n')
         this.lock = false
@@ -66,7 +67,6 @@ export class Shell {
 
   public resize() {
     if (this.status) {
-      this.fitAddon.fit()
       const option = {
         type: 1,
         data: {
@@ -75,7 +75,6 @@ export class Shell {
         },
       }
       this.websocket?.send(JSON.stringify(option))
-      console.log(option,JSON.stringify(option))
     }
   }
 
