@@ -47,5 +47,6 @@ export const iconMap = {
   Van,
   RefreshRight,
   Close,
+
 }
 export type IconName = keyof typeof iconMap

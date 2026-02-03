@@ -4,8 +4,8 @@ const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', redirect: '/home' },
-    //{ path: '/login', component: () => import('@/views/LoginView.vue') },
-    { path: '/login', component: () => import('@/components/SShTerminal/SSHTabs.vue') },
+    { path: '/login', component: () => import('@/views/LoginView.vue') },
+    //{ path: '/login', component: () => import('@/components/SShTerminal/SSHTabs.vue') },
     /*{
       path: '/home',
       component: () => import('@/components/HomeView.vue'),

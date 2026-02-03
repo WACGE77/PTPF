@@ -1,8 +1,8 @@
 import router from '@/router'
 import axios from 'axios'
 import api from '@/api'
-const BASE_URL = 'http://106.13.85.137:8000/api'
-const BASE_WS_URL = 'ws://106.13.85.137:8000/api'
+const BASE_URL = 'http://106.13.85.137:80/api'
+const BASE_WS_URL = 'ws://106.13.85.137:80/api'
 let refreshProcess: Promise<boolean> | null = null
 
 const refreshToken = () => {
