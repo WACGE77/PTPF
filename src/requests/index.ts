@@ -1,10 +1,26 @@
 import router from '@/router'
 import axios from 'axios'
 import api from '@/api'
-const BASE_URL = 'http://106.13.85.137:80/api'
-const BASE_WS_URL = 'ws://106.13.85.137:80/api'
+import { ElMessage } from 'element-plus'
+const BASE_URL = 'https://www.wacgee.icu/api'
+const BASE_WS_URL = 'ws://www.wacgee.icu/api'
 let refreshProcess: Promise<boolean> | null = null
-
+export const request_error = (error:any) => {
+  let errMsg:string = ""
+    if (error.response){
+      const detail = error.response.data.detail
+      if(Array.isArray(detail)){
+        errMsg = detail[0]
+      }else if(typeof detail === 'object'){
+        errMsg = Object.values(detail)[0] as string
+      }else if(typeof detail === 'string') {
+        errMsg = detail
+      }
+    }else{
+      errMsg = error.message
+    }
+    ElMessage.error(errMsg)
+}
 const refreshToken = () => {
   if (refreshProcess) return refreshProcess
   refreshProcess = api.authApi
@@ -46,7 +62,9 @@ requests.interceptors.response.use(
   },
   async(error) => {
     const originalConfig = error.response?.config
-    if (error.response?.status === 401 && originalConfig && !originalConfig._retry) {
+    const url = originalConfig?.url || "";
+    const isLoginApi = url.includes("/login");
+    if (error.response?.status === 401 && originalConfig && !originalConfig._retry && !isLoginApi) {
       originalConfig._retry = true
       const success = await refreshToken()
       if (success) {
@@ -94,4 +112,5 @@ export default {
   patch,
   getBaseUrl,
   getWsBaseUrl,
+  request_error
 }

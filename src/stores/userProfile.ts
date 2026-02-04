@@ -19,7 +19,7 @@ export const userProfile = defineStore('userProfile', () => {
     if (!token) return
     const result = await api.userApi.userInfo()
     if (result.data.code == 200) {
-      Object.assign(user, result.data.data)
+      Object.assign(user, result.data.detail)
     }
     user.avatar =
       'https://ui-avatars.com/api/?name=' + user.name + '&background=random&color=fff&size=256'

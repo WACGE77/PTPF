@@ -17,6 +17,12 @@ import {
   Van,
   RefreshRight,
   Close,
+  SwitchButton,
+  Folder,
+  List,
+  Files,
+  Message,
+  Bell
 } from '@element-plus/icons-vue'
 
 export function getIconComponent(iconName: string) {
@@ -47,6 +53,11 @@ export const iconMap = {
   Van,
   RefreshRight,
   Close,
-
+  SwitchButton,
+  Folder,
+  List,
+  Files,
+  Message,
+  Bell
 }
 export type IconName = keyof typeof iconMap

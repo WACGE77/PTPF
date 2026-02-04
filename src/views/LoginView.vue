@@ -82,6 +82,8 @@ import { getIconComponent } from '@/utils/iconMap.ts'
 import { ref } from 'vue'
 import { ElMessage } from 'element-plus'
 import api from '@/api/index.ts'
+import {request_error} from '@/requests'
+import router from '@/router'
 const formRef = ref()
 const isLoading = ref(false) // 登录加载状态
 const loginForm = ref({
@@ -109,17 +111,13 @@ const handleLogin = async () => {
   try {
     const res = await api.authApi.login(loginForm.value)
     if (res.status == 200) {
+      const token = res.data.token.access
+      localStorage.setItem('token', token)
       ElMessage.success('登录成功！')
-      console.log(res)
-      //await router.push('/home')
+      await router.push('/home')
     }
   } catch (error:any) {
-    if (error.response){
-      const detail = error.response.data.detail
-
-    }else{
-      ElMessage.error(error.message)
-    }
+    request_error(error)
   } finally {
     isLoading.value = false
   }
