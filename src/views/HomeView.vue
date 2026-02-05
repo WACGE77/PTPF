@@ -126,6 +126,11 @@ const activeMenu = ref('1-1')
 // 静态菜单数据（完全使用iconMap中的图标名）
 const menuList = ref<MenuItem[]>([
   {
+    index:'0',
+    label:'概览',
+    icon:"Monitor"
+  },
+  {
     index: '1',
     label: '资源管理',
     icon: 'Folder', // 改用更贴合的Folder图标
@@ -186,6 +191,7 @@ const handleUserCommand = (command: DropdownCommand) => {
       break
   }
 }
+
 </script>
 
 <style scoped>

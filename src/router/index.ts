@@ -9,11 +9,11 @@ const router = createRouter({
     {
       path: '/home',
       component: () => import('@/views/HomeView.vue'),
-      //redirect: '/overview',
+      redirect: '/overview',
       //以下现为静态,后续改为动态
       children: [
         //{path:'/profile',component:()=>import('@/views/profile.vue')}
-        //{ path: '/overview', component: () => import('@/views/overview/IndexView.vue') },
+        { path: '/overview', component: () => import('@/views/IndexPage.vue') },
         //{ path: '/terminal', component: () => import('@/views/terminal/IndexView.vue') },
         // { path: '/role', component: () => import('@/views/roleManage/IndexView.vue') },
         // { path: '/user', component: () => import('@/views/userManage/IndexView.vue') },
