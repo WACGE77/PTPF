@@ -3,7 +3,7 @@ import axios from 'axios'
 import api from '@/api'
 import { ElMessage } from 'element-plus'
 const BASE_URL = 'https://www.wacgee.icu/api'
-const BASE_WS_URL = 'ws://www.wacgee.icu/api'
+const BASE_WS_URL = 'wss://www.wacgee.icu/api'
 let refreshProcess: Promise<boolean> | null = null
 export const request_error = (error:any) => {
   let errMsg:string = ""

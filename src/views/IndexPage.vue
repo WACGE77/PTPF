@@ -12,14 +12,23 @@
             border
             class="session-table"
           >
-            <el-table-column prop="id" label="ID"/>
-            <el-table-column prop="user" label="用户"/>
-            <el-table-column prop="client" label="客户端"/>
-            <el-table-column prop="server" label="服务端"/>
-            <el-table-column prop="username" label="账户名"/>
-            <el-table-column prop="status" label="状态"/>
-            <el-table-column prop="start_time" label="开始时间"/>
-            <el-table-column prop="end_time" label="结束时间"/>
+            <el-table-column prop="id" label="ID" width="50"/>
+            <el-table-column prop="user.name" label="用户" width="100"/>
+            <el-table-column prop="ip" label="客户端" width="120"/>
+            <el-table-column prop="resource.name" label="服务端" width="70"/>
+            <el-table-column prop="resource.ip" label="服务端IP" width="120"/>
+            <el-table-column prop="voucher.username" label="账户名" width="70"/>
+            <el-table-column prop="status" label="状态" width="70"/>
+            <el-table-column
+              prop="start_time"
+              label="开始时间"
+              :formatter="(row:SessionRecord) => formatIsoTimeToReadable(row.start_time, 'YYYY-MM-DD HH:mm:ss')"
+            />
+            <el-table-column
+              prop="end_time"
+              label="结束时间"
+              :formatter="(row:SessionRecord) => formatIsoTimeToReadable(row.start_time, 'YYYY-MM-DD HH:mm:ss')"
+            />
           </el-table>
         </el-main>
 
@@ -60,7 +69,7 @@
 
                 <el-table-column label="时间">
                   <template #default="{ row }">
-                    {{ row.time }}
+                    {{ formatIsoTimeToReadable(row.date) }}
                   </template>
                 </el-table-column>
 
@@ -81,39 +90,48 @@
 <script setup lang="ts">
 import { ref, onMounted } from 'vue'
 import { userProfile } from '@/stores/userProfile'
-
+import type { SessionRecord,LoginRecord } from '@/struct'
+import api from '@/api'
+import { ElMessage } from 'element-plus'
+import { request_error } from '@/requests'
+import {formatIsoTimeToReadable} from '@/utils/time.ts'
 const userinfo = userProfile()
 
-const sessionList = ref<any[]>([])
-const loginRecords = ref<any[]>([])
+const sessionList = ref<SessionRecord[]>([])
+const loginRecords = ref<LoginRecord[]>([])
 const userAvatar = ref('')
-
-
+const getSessionList = async () => {
+  try{
+    const res = await api.auditApi.sessionLog({ desc:true, self:true})
+    if (res.status === 200) {
+      Object.assign(sessionList.value, res.data.detail)
+    }else{
+      ElMessage.error(res.data.detail)
+    }
+  }catch(err:any){
+    request_error(err)
+  }
+}
+const getLoginList = async () => {
+  try{
+    const res = await api.auditApi.loginLog({ desc:true, self:true,page_size:5})
+    if (res.status === 200) {
+      Object.assign(loginRecords.value, res.data.detail)
+    }else{
+      ElMessage.error(res.data.detail)
+    }
+  }catch(err:any){
+    request_error(err)
+  }
+}
 onMounted(async () => {
   await userinfo.getuser()
-
+  await getSessionList()
+  await getLoginList()
   userAvatar.value =
     'https://ui-avatars.com/api/?name=' +
     (userinfo.user.name || 'User') +
     '&background=4F46E5&color=fff&size=100'
-
-  sessionList.value = [
-    {
-      id: 1,
-      user: '管理员',
-      client: '服务器A',
-      server: '192.168.1.100',
-      username: 'admin',
-      status:'close',
-      start_time:"1111",
-      end_time:"2222"
-    }
-  ]
-
-  loginRecords.value = [
-    { ip: '北京', time: '2026-04-01 10:30' },
-    { ip: '上海', time: '2026-03-30 15:20' }
-  ]
 })
 </script>
 
@@ -142,7 +160,7 @@ onMounted(async () => {
 
 /* ===== 右侧面板 ===== */
 .bastion-aside-right {
-  width: 480px;
+  width: 450px;
   padding: 24px;
   background: #f5f7fa;
 }

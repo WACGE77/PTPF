@@ -12,6 +12,7 @@ const router = createRouter({
       redirect: '/overview',
       //以下现为静态,后续改为动态
       children: [
+        {path:'/test',component:() => import('@/components/SShTerminal/SSHTabs.vue')},
         //{path:'/profile',component:()=>import('@/views/profile.vue')}
         { path: '/overview', component: () => import('@/views/IndexPage.vue') },
         //{ path: '/terminal', component: () => import('@/views/terminal/IndexView.vue') },
