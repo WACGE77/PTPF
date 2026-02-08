@@ -17,6 +17,7 @@
           text-color="#fff"
           active-text-color="#ffd04b"
           collapse-transition
+          @select="router_push"
         >
           <!-- 循环渲染菜单数据 -->
           <template v-for="menu in menuList" :key="menu.index">
@@ -34,7 +35,6 @@
                 v-for="subMenu in menu.children"
                 :key="subMenu.index"
                 :index="subMenu.index"
-                @select="router_push"
               >
                 <el-icon>
                   <component :is="getIconComponent(subMenu.icon)" />
@@ -126,7 +126,7 @@ const activeMenu = ref('1-1')
 // 静态菜单数据（完全使用iconMap中的图标名）
 const menuList = ref<MenuItem[]>([
   {
-    index:'0',
+    index:"/overview",
     label:'概览',
     icon:"Monitor"
   },
@@ -150,7 +150,7 @@ const menuList = ref<MenuItem[]>([
     label: '权限管理',
     icon: 'User',
     children: [
-      { index: '3-1', label: '用户管理', icon: 'UserFilled' },
+      { index: '/user', label: '用户管理', icon: 'UserFilled' },
       { index: '3-2', label: '角色管理', icon: 'Van' },
       { index: '3-3', label: '权限分配', icon: 'Lock' },
     ],
@@ -173,7 +173,6 @@ const menuList = ref<MenuItem[]>([
 ])
 
 const router_push = async (index: string) => {
-  console.log(index)
   await router.push(index)
 }
 
