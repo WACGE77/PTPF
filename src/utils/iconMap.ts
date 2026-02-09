@@ -22,7 +22,8 @@ import {
   List,
   Files,
   Message,
-  Bell
+  Bell,
+  Check
 } from '@element-plus/icons-vue'
 
 export function getIconComponent(iconName: string) {
@@ -58,6 +59,7 @@ export const iconMap = {
   List,
   Files,
   Message,
-  Bell
+  Bell,
+  Check
 }
 export type IconName = keyof typeof iconMap

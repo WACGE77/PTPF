@@ -18,6 +18,8 @@ export interface Role{
   id?: number
   name?: string
   code?: string
+  description?:string
+  status?:boolean
   protected?: boolean
   create_date?: string
   update_date?: string

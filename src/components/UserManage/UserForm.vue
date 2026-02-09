@@ -54,13 +54,13 @@
       />
     </el-form-item>
 
-    <el-form-item label="状态" prop="status">
-      <el-switch
-        v-model="userData.status"
-        active-text="正常"
-        inactive-text="禁用"
-      />
-    </el-form-item>
+<!--    <el-form-item label="状态" prop="status">-->
+<!--      <el-switch-->
+<!--        v-model="userData.status"-->
+<!--        active-text="正常"-->
+<!--        inactive-text="禁用"-->
+<!--      />-->
+<!--    </el-form-item>-->
   </el-form>
 </template>
 
