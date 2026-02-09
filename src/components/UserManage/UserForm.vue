@@ -1,7 +1,7 @@
 <template>
   <!-- 新增标题区域 -->
   <div class="form-header">
-    <h3 class="form-title">{{ userData.id === 0 ? '添加用户' : '编辑用户' }}</h3>
+    <h3 class="form-title">{{ userData.id === 0 ? '添加用户' : '编辑用户' }} {{ userData.id === 0 ? '' : userData.name }}</h3>
   </div>
 
   <el-form
@@ -72,25 +72,7 @@ import { request_error } from '@/requests'
 import { ElMessage } from 'element-plus'
 
 // 定义Props接收用户数据
-const props = defineProps<{
-  user: User
-}>();
-
-// 模拟的用户数据（实际使用时会被props传入的user覆盖）
-const mockUser = {
-  id: 1,
-  name: "管理员",
-  email: "1964282264@qq.com",
-  status: true,
-  protected: true,
-  phone_number: null,
-  avatar: "/media/avatars/default.png",
-  create_date: "2025-01-01T08:00:00+08:00",
-  update_date: "2025-01-01T08:00:00+08:00",
-  login_date: null,
-  remark: null,
-  roles: [1]
-};
+const user = defineModel<User>('user')
 
 // 表单数据（优先使用props传入的user，没有则用模拟数据）
 const userData = ref<User>({
@@ -104,13 +86,9 @@ const userData = ref<User>({
 });
 
 // 初始化表单数据
-const initForm = () => {
-  const targetUser = props.user || mockUser;
-  if (targetUser.id) {
-    Object.assign(userData.value, targetUser);
-  }
+const init = () => {
+  Object.assign(userData.value, user.value);
 };
-initForm();
 
 const formRef = ref<any>(null);
 
@@ -121,7 +99,7 @@ const formRules = ref({
     { min: 3, max: 20, message: '账户名长度在3-20个字符之间', trigger: 'blur' }
   ],
   password: [
-    { required: () => (props.user.id === 0), message: '请输入密码', trigger: 'blur' },
+    { required: () => (userData.value.id === 0), message: '请输入密码', trigger: 'blur' },
     { min: 6, max: 20, message: '密码长度在6-20个字符之间', trigger: 'blur' }
   ],
   name: [
@@ -136,9 +114,9 @@ const formRules = ref({
   ]
 });
 
-const submitForm = async () => {
+const submit = async () => {
   const isvalid = await formRef.value.validate();
-  if (isvalid) return;
+  if (!isvalid)return
   try {
     let msg = ''
     let res = null
@@ -158,6 +136,10 @@ const submitForm = async () => {
     request_error(err)
   }
 }
+defineExpose({
+  submit,
+  init
+})
 </script>
 
 <style scoped lang="scss">

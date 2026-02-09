@@ -56,7 +56,7 @@
 </template>
 
 <script setup lang="ts">
-import {type Role} from '@/struct/rbac.ts'
+import { type Role, type User } from '@/struct/rbac.ts'
 import { type Ref, ref } from 'vue'
 import api from '@/api'
 import { ElMessage } from 'element-plus'
@@ -64,29 +64,18 @@ import { request_error } from '@/requests'
 interface RoleItem extends Role{
   isSelected?:boolean|0
 }
-const props = defineProps({
-  user:{
-    type:Number,
-  },
-  roles:{
-    type:Array<RoleItem>,
-    default:[]
-  },
-  userRoles:{
-    type:Array<number>,
-    default : []
-  }
-})
+const user = defineModel<User>('user')
+const roles = defineModel<RoleItem[]>('roles')
 const selectedRoleList:Ref<RoleItem[]> = ref([])
 
 const submit = async () =>{
-  if(!props.user)return
-  const assign = []
+  if(!user.value)return
+  const assign:number[] = []
   selectedRoleList.value.forEach((ele:RoleItem) => {
-    assign.push(ele.id)
+    if (ele.id)assign.push(ele.id)
   })
   const data = {
-    id:props.user,
+    id:user.value.id,
     roles : assign
   }
   try {
@@ -101,7 +90,7 @@ const submit = async () =>{
   }
 }
 
-const handleRoleClick = (role) => {
+const handleRoleClick = (role:RoleItem) => {
   role.isSelected = !role.isSelected
   if ( role.isSelected ){
     selectedRoleList.value.push(role)
@@ -114,8 +103,8 @@ const RemoveTag = (role:RoleItem) =>{
   selectedRoleList.value = selectedRoleList.value.filter((ele) => ele.id!=role.id)
 }
 const init = async ()=>{
-  const validRoles = Array.isArray(props.roles) ? props.roles : []
-  const validUserRoles = Array.isArray(props.userRoles) ? props.userRoles : []
+  const validRoles = Array.isArray(roles.value) ? roles.value : []
+  const validUserRoles = Array.isArray(user.value?.roles) ? user.value?.roles : []
   selectedRoleList.value = []
   validRoles.forEach((ele:RoleItem) => {
     const isSelected = ele.id && validUserRoles.includes(ele.id)
@@ -125,7 +114,10 @@ const init = async ()=>{
     }
   })
 }
-init()
+defineExpose({
+  submit,
+  init
+})
 </script>
 
 <style scoped lang="scss">

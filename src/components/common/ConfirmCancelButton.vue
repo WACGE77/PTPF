@@ -1,7 +1,7 @@
 <template>
   <div class="confirm-cancel-btn-group" :style="{ justifyContent: align }">
     <!-- 取消按钮 -->
-    <el-button @click="props.cancel" :size="size" :type="cancelBtnType" :disabled="cancelDisabled" class="cancel-btn">
+    <el-button @click="props.quit" :size="size" :type="cancelBtnType" :disabled="cancelDisabled" class="cancel-btn">
       {{ cancelText }}
     </el-button>
 
@@ -68,8 +68,9 @@ const props = defineProps({
     type: Function,
     default: async () => {},
   },
-  cancel:{
+  quit:{
     type:Function,
+    default: async () => {},
   }
 })
 const loading = ref(false)
@@ -83,7 +84,7 @@ const click_event = async () => {
       type: 'warning', // 图标类型：success/info/warning/error
     })
     await props.submit()
-  } finally{
+  } catch{}finally {
     loading.value = false
   }
 }
