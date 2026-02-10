@@ -53,7 +53,7 @@
         <template #default="scope">
           <el-switch
             :disabled="scope.row.protected"
-            v-model:value="scope.row.status"
+            v-model="scope.row.status"
             @change="changeStatus(scope.row)"
             active-text="启用"
             inactive-text="禁用"
@@ -527,11 +527,20 @@ $font-main: "Inter", "Microsoft YaHei", "PingFang SC", sans-serif;
       background-color: $bg-light;
     }
 
-    // 状态开关
+    // 状态开关（修改后的配色）
     .el-switch {
-      --el-switch-on-color: $success-color !important;
-      --el-switch-off-color: #e6e6e6 !important;
-      &.is-disabled { opacity: 1 !important; }
+      // 开启状态颜色（主蓝色）
+      --el-switch-on-color: #409eff !important;
+      // 关闭状态颜色（危险红）
+      --el-switch-off-color: #f56c6c !important;
+      // 开启文字颜色
+      --el-switch-on-text-color: #ffffff !important;
+      // 关闭文字颜色
+      --el-switch-off-text-color: #ffffff !important;
+      // 禁用状态不透明
+      &.is-disabled {
+        opacity: 0.6 !important;
+      }
     }
   }
 
