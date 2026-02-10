@@ -71,7 +71,11 @@ const props = defineProps({
   quit:{
     type:Function,
     default: async () => {},
-  }
+  },
+  destruct:{
+    type:Function,
+    default: async () => {},
+  },
 })
 const loading = ref(false)
 const click_event = async () => {
@@ -84,6 +88,7 @@ const click_event = async () => {
       type: 'warning', // 图标类型：success/info/warning/error
     })
     await props.submit()
+    await props.destruct()
   } catch{}finally {
     loading.value = false
   }

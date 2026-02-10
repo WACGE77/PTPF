@@ -7,6 +7,7 @@ const userApi = {
   updateUser: (data: Record<string, unknown>) => requests.post('/rbac/user/edit/', data),
   resetPassword: (data: Record<string, unknown>) => requests.post('/rbac/user/reset-password/', data),
   userInfo: () => requests.get('/rbac/user/detail/', {}),
+  bind:(data:Record<string, unknown>) => requests.post('rbac/user/role/',data)
 }
 
 const roleApi = {

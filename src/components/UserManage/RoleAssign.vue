@@ -1,9 +1,9 @@
 <template>
   <div class="role-assign-container">
-    <!-- 角色搜索区域 -->
-    <div class="role-search">
-      <el-input placeholder="请输入角色名称/编码搜索" prefix="Search" clearable size="large" />
-    </div>
+    <!--    &lt;!&ndash; 角色搜索区域 &ndash;&gt;-->
+    <!--    <div class="role-search">-->
+    <!--      <el-input placeholder="请输入角色名称/编码搜索" prefix="Search" clearable size="large" />-->
+    <!--    </div>-->
 
     <div class="role-content">
       <!-- 已选角色区域（简约风，去掉大方框） -->
@@ -57,56 +57,56 @@
 
 <script setup lang="ts">
 import { type Role, type User } from '@/struct/rbac.ts'
-import { type Ref, ref } from 'vue'
+import { type Ref, ref, watch } from 'vue'
 import api from '@/api'
 import { ElMessage } from 'element-plus'
 import { request_error } from '@/requests'
-interface RoleItem extends Role{
-  isSelected?:boolean|0
+interface RoleItem extends Role {
+  isSelected?: boolean | 0
 }
 const user = defineModel<User>('user')
 const roles = defineModel<RoleItem[]>('roles')
-const selectedRoleList:Ref<RoleItem[]> = ref([])
+const selectedRoleList: Ref<RoleItem[]> = ref([])
 
-const submit = async () =>{
-  if(!user.value)return
-  const assign:number[] = []
-  selectedRoleList.value.forEach((ele:RoleItem) => {
-    if (ele.id)assign.push(ele.id)
+const submit = async () => {
+  if (!user.value) return
+  const assign: number[] = []
+  selectedRoleList.value.forEach((ele: RoleItem) => {
+    if (ele.id) assign.push(ele.id)
   })
   const data = {
-    id:user.value.id,
-    roles : assign
+    id: user.value.id,
+    roles: assign,
   }
   try {
-    const res = await api.userApi.updateUser(data)
-    if (res.data.code == 200){
+    const res = await api.userApi.bind(data)
+    if (res.data.code == 200) {
       ElMessage.success('绑定成功')
-    }else{
+    } else {
       ElMessage.error(res.data.detail)
     }
-  }catch (err){
+  } catch (err) {
     request_error(err)
   }
 }
 
-const handleRoleClick = (role:RoleItem) => {
+const handleRoleClick = (role: RoleItem) => {
   role.isSelected = !role.isSelected
-  if ( role.isSelected ){
+  if (role.isSelected) {
     selectedRoleList.value.push(role)
-  }else{
+  } else {
     RemoveTag(role)
   }
 }
-const RemoveTag = (role:RoleItem) =>{
+const RemoveTag = (role: RoleItem) => {
   role.isSelected = false
-  selectedRoleList.value = selectedRoleList.value.filter((ele) => ele.id!=role.id)
+  selectedRoleList.value = selectedRoleList.value.filter((ele) => ele.id != role.id)
 }
-const init = async ()=>{
+const init = async () => {
   const validRoles = Array.isArray(roles.value) ? roles.value : []
   const validUserRoles = Array.isArray(user.value?.roles) ? user.value?.roles : []
   selectedRoleList.value = []
-  validRoles.forEach((ele:RoleItem) => {
+  validRoles.forEach((ele: RoleItem) => {
     const isSelected = ele.id && validUserRoles.includes(ele.id)
     ele.isSelected = isSelected
     if (isSelected) {
@@ -114,9 +114,16 @@ const init = async ()=>{
     }
   })
 }
+watch(
+  user,
+  (newVal) => {
+    init()
+  },
+  { immediate: true, deep: true },
+)
 defineExpose({
   submit,
-  init
+  init,
 })
 </script>
 
