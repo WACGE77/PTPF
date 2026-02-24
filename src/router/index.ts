@@ -19,6 +19,7 @@ const router = createRouter({
         //{ path: '/terminal', component: () => import('@/views/terminal/IndexView.vue') },
         // { path: '/role', component: () => import('@/views/roleManage/IndexView.vue') },
         { path: '/user', component: () => import('@/views/UserManage.vue') },
+        { path: '/role', component: () => import('@/views/RoleManage.vue') },
         // { path: '/voucher', component: () => import('@/views/voucherManage/IndexView.vue') },
         // { path: '/resource', component: () => import('@/views/resourceManage/IndexView.vue') },
         // { path: '/audit', component: () => import('@/views/auditView/IndexView.vue') },

@@ -14,7 +14,7 @@ const roleApi = {
   getRole: (data: Record<string, unknown>) => requests.get('/rbac/role/get/', data),
   addRole: (data: Record<string, unknown>) => requests.post('/rbac/role/add/', data),
   deleteRole: (data: Record<string, unknown>) => requests.post('/rbac/role/del/', data),
-  updateRole: (role_id: number, data: Record<string, unknown>) => requests.post('/rbac/role/edit',data)
+  updateRole: (data: Record<string, unknown>) => requests.post('/rbac/role/edit/', data)
 }
 
 const groupApi = {

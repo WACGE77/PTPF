@@ -151,7 +151,7 @@ const menuList = ref<MenuItem[]>([
     icon: 'User',
     children: [
       { index: '/user', label: '用户管理', icon: 'UserFilled' },
-      { index: '3-2', label: '角色管理', icon: 'Van' },
+      { index: '/role', label: '角色管理', icon: 'Van' },
       { index: '3-3', label: '权限分配', icon: 'Lock' },
     ],
   },
