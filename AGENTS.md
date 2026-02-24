@@ -20,34 +20,50 @@
 
 ```
 src/
-├── api/              # API 接口定义
-├── components/       # 公共组件
-│   ├── UserManage/  # 用户管理相关组件
-│   │   ├── UserForm.vue
-│   │   ├── RoleAssign.vue
-│   │   └── ResetPassword.vue
-│   ├── SShTerminal/ # SSH 终端组件
-│   │   ├── SSHTabs.vue
-│   │   └── BlankPage.vue
-│   └── common/       # 通用组件
-├── requests/         # HTTP 请求封装
-│   └── index.ts     # 包含 token 刷新机制
-├── router/          # 路由配置
-├── stores/          # Pinia 状态管理
+├── api/                   # API 接口定义
+├── components/
+│   ├── common/            # 通用组件
+│   │   └── ConfirmCancelButton.vue
+│   ├── ResourceManage/    # 资源管理相关组件
+│   │   ├── BindVoucher.vue
+│   │   ├── GroupForm.vue
+│   │   ├── ResourceDetail.vue
+│   │   ├── ResourceForm.vue
+│   │   └── VoucherForm.vue
+│   ├── SShTerminal/       # SSH 终端组件
+│   │   ├── BlankPage.vue
+│   │   └── SSHTabs.vue
+│   └── UserManage/        # 用户管理相关组件
+│       ├── ResetPassword.vue
+│       ├── RoleAssign.vue
+│       └── UserForm.vue
+├── requests/              # HTTP 请求封装
+│   └── index.ts           # 包含 token 刷新机制
+├── router/                # 路由配置
+├── stores/                # Pinia 状态管理
+│   ├── counter.ts
+│   ├── resource.ts         # 资源/凭证/资源组管理
 │   └── userProfile.ts
-├── struct/           # TypeScript 类型定义
-│   ├── rbac.ts      # 用户、角色类型
-│   ├── terminal.ts  # 终端类型
-│   ├── audit.ts     # 审计类型
-├── utils/           # 工具函数
-│   ├── iconMap.ts   # 图标映射
-│   ├── terminal.ts  # SSH 终端类
-│   └── time.ts      # 时间格式化
-└── views/           # 页面组件
-    ├── LoginView.vue
-    ├── HomeView.vue
-    ├── IndexPage.vue
-    └── UserManage.vue
+├── struct/                 # TypeScript 类型定义
+│   ├── audit.ts
+│   ├── rbac.ts
+│   ├── resource.ts
+│   └── terminal.ts
+├── utils/                  # 工具函数
+│   ├── iconMap.ts
+│   ├── terminal.ts
+│   └── time.ts
+├── views/                  # 页面组件
+│   ├── HomeView.vue
+│   ├── IndexPage.vue
+│   ├── LoginView.vue
+│   ├── ResourceManage.vue
+│   ├── RoleManage.vue
+│   └── UserManage.vue
+├── __tests__/              # 单元测试
+│   └── App.spec.ts
+├── App.vue
+└── main.ts
 ```
 
 ## 常用命令

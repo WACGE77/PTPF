@@ -121,7 +121,7 @@ interface MenuItem {
 }
 
 // 默认激活的菜单
-const activeMenu = ref('1-1')
+const activeMenu = ref('/resource')
 
 // 静态菜单数据（完全使用iconMap中的图标名）
 const menuList = ref<MenuItem[]>([
@@ -133,11 +133,9 @@ const menuList = ref<MenuItem[]>([
   {
     index: '1',
     label: '资源管理',
-    icon: 'Folder', // 改用更贴合的Folder图标
+    icon: 'Folder',
     children: [
-      { index: '1-1', label: '资源组管理', icon: 'List' },
-      { index: '1-2', label: '资源管理', icon: 'Monitor' },
-      { index: '1-3', label: '凭证管理', icon: 'Key' },
+      { index: '/resource', label: '资源管理', icon: 'Folder' },
     ],
   },
   {

@@ -44,6 +44,7 @@ npm run test:unit    # 运行单元测试
 
 ### Pinia Store
 - 用户信息存储在 `userProfile` store
+- 资源/凭证/资源组存储在 `resourceStore` store
 - 使用 `defineStore` 定义 store
 
 ### 路由
@@ -65,6 +66,7 @@ npm run test:unit    # 运行单元测试
 主要类型定义在 `src/struct/` 目录：
 - `User` - 用户类型
 - `Role` - 角色类型
+- `Resource` - 资源类型
 - `SessionRecord` - 会话记录
 - `LoginRecord` - 登录记录
 
@@ -89,6 +91,35 @@ catch (err) {
 import { userProfile } from '@/stores/userProfile'
 const userPro = userProfile()
 userPro.getuser()
+```
+
+### 使用资源 store
+```typescript
+import { resourceStore } from '@/stores/resource'
+const store = resourceStore()
+
+// 加载所有数据
+store.loadAll()
+
+// 按需刷新
+store.getGroups(true)      // 刷新资源组
+store.getResources(true)   // 刷新资源
+store.getVouchers(true)    // 刷新凭证
+
+// 获取组下的资源/凭证
+store.getResourcesByGroup(groupId)
+store.getVouchersByGroup(groupId)
+
+// CRUD 操作
+store.addGroup(data)
+store.updateGroup(data)
+store.deleteGroup([id])
+store.addResource(data)
+store.updateResource(data)
+store.deleteResource([id])
+store.addVoucher(data)
+store.updateVoucher(data)
+store.deleteVoucher([id])
 ```
 
 ### 使用图标

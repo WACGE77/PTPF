@@ -82,16 +82,16 @@ const click_event = async () => {
   loading.value = true
   try {
     await ElMessageBox.confirm('是否确认此操作?', '提交确认', {
-      // 可选配置项（按需加）
       confirmButtonText: '确认',
       cancelButtonText: '取消',
-      type: 'warning', // 图标类型：success/info/warning/error
+      type: 'warning',
     })
     await props.submit()
+  } catch {}
+  try {
     await props.destruct()
-  } catch{}finally {
-    loading.value = false
-  }
+  } catch {}
+  loading.value = false
 }
 </script>
 <style scoped lang="scss">
