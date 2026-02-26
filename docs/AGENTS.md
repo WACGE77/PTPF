@@ -97,3 +97,34 @@ npm run test:unit    # 运行单元测试
 - API 响应格式: `{ code: 200, detail: ..., total: ... }`
 - 用户信息存储在 Pinia store (`userProfile`)
 - 图标使用 `getIconComponent` 动态加载
+- 资源组和凭证使用同一个组（资源组包含资源和凭证）
+
+## 表单验证规则
+
+所有表单已配置 blur 验证，验证通过后才能提交：
+
+### GroupForm.vue (资源组表单)
+- name: 必填
+- role (系统组拥有者): 仅顶级组必填
+
+### ResourceForm.vue (资源表单)
+- group: 必选
+- name: 必填
+- ipv4/ipv6: 至少填写一个，支持格式验证
+- port: 1-65535
+
+### VoucherForm.vue (凭证表单)
+- group: 必选
+- name: 必填
+- username: 必填
+- password/private_key: 至少填写一个
+
+### UserForm.vue (用户表单)
+- account: 必填，3-20字符
+- password: 6-20字符，需包含字母和数字
+- email: 邮箱格式
+- phoneNumber: 手机号格式
+
+### ResetPassword.vue (重置密码)
+- newPassword: 6-20字符，需包含字母和数字
+- confirmPassword: 需与新密码一致

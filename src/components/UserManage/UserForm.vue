@@ -6,7 +6,7 @@
     </h3>
   </div>
 
-  <el-form ref="formRef" :model="userData" :rules="formRules" label-width="100px" class="user-form">
+  <el-form ref="formRef" :model="userData" :rules="formRules" label-width="100px" class="user-form" validate-on-rule-change>
     <el-form-item label="账户名" prop="account">
       <el-input
         v-model="userData.account"
@@ -48,7 +48,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, defineProps, watch } from 'vue'
+import { ref, defineProps, watch, nextTick } from 'vue'
 import type { User } from '@/struct/rbac.js'
 import api from '@/api'
 import { request_error } from '@/requests'
@@ -69,11 +69,25 @@ const userData = ref<User>({
 })
 
 // 初始化表单数据
-const init = () => {
+const init = async () => {
   Object.assign(userData.value, user.value)
+  await nextTick()
+  formRef.value?.validate()
 }
 
 const formRef = ref<any>(null)
+
+const validatePassword = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
+  if (userData.value.id === 0 && !value) {
+    callback(new Error('请输入密码'))
+  } else if (value && (value.length < 6 || value.length > 20)) {
+    callback(new Error('密码长度在6-20个字符之间'))
+  } else if (value && !/^(?=.*[a-zA-Z])(?=.*\d)/.test(value)) {
+    callback(new Error('密码需包含字母和数字'))
+  } else {
+    callback()
+  }
+}
 
 // 表单校验规则
 const formRules = ref({
@@ -82,8 +96,7 @@ const formRules = ref({
     { min: 3, max: 20, message: '账户名长度在3-20个字符之间', trigger: 'blur' },
   ],
   password: [
-    { required: () => userData.value.id === 0, message: '请输入密码', trigger: 'blur' },
-    { min: 6, max: 20, message: '密码长度在6-20个字符之间', trigger: 'blur' },
+    { validator: validatePassword, trigger: 'blur' }
   ],
   name: [{ max: 50, message: '昵称长度不超过50个字符', trigger: 'blur' }],
   email: [

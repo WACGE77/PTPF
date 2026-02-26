@@ -3,11 +3,15 @@
     <div class="page-header">
       <h2 class="title">资源管理</h2>
       <div class="header-actions">
-        <el-button type="primary" @click="handleAddResource">
+        <el-button type="primary" @click="handleAddResourceGroup">
+          <component :is="getIconComponent('Plus')" />
+          <span>新增系统组</span>
+        </el-button>
+        <el-button type="success" @click="handleAddResource">
           <component :is="getIconComponent('Plus')" />
           <span>新增资源</span>
         </el-button>
-        <el-button type="success" @click="handleAddVoucher">
+        <el-button type="warning" @click="handleAddVoucher">
           <component :is="getIconComponent('Plus')" />
           <span>新增凭证</span>
         </el-button>
@@ -21,18 +25,18 @@
         </div>
         <el-tree
           ref="resourceTreeRef"
-          :data="resourceTreeData"
+          :data="treeData"
           :props="treeProps"
           node-key="id"
           :expand-on-click-node="false"
           :default-expand-all="true"
-          @node-click="handleResourceClick"
+          @node-click="handleNodeClick"
         >
           <template #default="{ node, data }">
             <div class="custom-tree-node">
               <div class="node-content">
                 <el-icon class="node-icon" :class="data.type">
-                  <component :is="data.type === 'group' ? Folder : Monitor" />
+                  <component :is="getNodeIcon(data.type)" />
                 </el-icon>
                 <span class="node-label">{{ node.label }}</span>
                 <el-tag v-if="data.type === 'group'" size="small" type="info">组</el-tag>
@@ -47,7 +51,9 @@
                   </el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
+                      <el-dropdown-item @click="handleAddSubGroup(data)">添加子组</el-dropdown-item>
                       <el-dropdown-item @click="handleAddResourceToGroup(data)">添加资源</el-dropdown-item>
+                      <el-dropdown-item @click="handleAddVoucherToGroup(data)">添加凭证</el-dropdown-item>
                       <el-dropdown-item @click="handleEditGroup(data)">编辑</el-dropdown-item>
                       <el-dropdown-item @click="handleDeleteGroup(data)" divided style="color: #F56C6C">删除</el-dropdown-item>
                     </el-dropdown-menu>
@@ -62,47 +68,6 @@
                       <el-dropdown-item @click="handleBindVoucher(data)">绑定凭证</el-dropdown-item>
                       <el-dropdown-item @click="handleEditResource(data)">编辑</el-dropdown-item>
                       <el-dropdown-item @click="handleDeleteResource(data)" divided style="color: #F56C6C">删除</el-dropdown-item>
-                    </el-dropdown-menu>
-                  </template>
-                </el-dropdown>
-              </div>
-            </div>
-          </template>
-        </el-tree>
-      </div>
-
-      <div class="voucher-panel">
-        <div class="panel-header">
-          <span class="panel-title">凭证</span>
-        </div>
-        <el-tree
-          ref="voucherTreeRef"
-          :data="voucherTreeData"
-          :props="treeProps"
-          node-key="id"
-          :expand-on-click-node="false"
-          :default-expand-all="true"
-          @node-click="handleVoucherClick"
-        >
-          <template #default="{ node, data }">
-            <div class="custom-tree-node">
-              <div class="node-content">
-                <el-icon class="node-icon" :class="data.type">
-                  <component :is="data.type === 'group' ? Folder : Key" />
-                </el-icon>
-                <span class="node-label">{{ node.label }}</span>
-                <el-tag v-if="data.type === 'group'" size="small" type="info">组</el-tag>
-              </div>
-              <div class="node-actions" @click.stop>
-                <el-dropdown v-if="data.type === 'group'" trigger="click">
-                  <el-button size="small" text>
-                    <el-icon><MoreFilled /></el-icon>
-                  </el-button>
-                  <template #dropdown>
-                    <el-dropdown-menu>
-                      <el-dropdown-item @click="handleAddVoucherToGroup(data)">添加凭证</el-dropdown-item>
-                      <el-dropdown-item @click="handleEditVoucherGroup(data)">编辑</el-dropdown-item>
-                      <el-dropdown-item @click="handleDeleteVoucherGroup(data)" divided style="color: #F56C6C">删除</el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
@@ -238,7 +203,6 @@ import { Folder, Monitor, Key } from '@element-plus/icons-vue'
 const store = resourceStore()
 
 const resourceTreeRef = ref()
-const voucherTreeRef = ref()
 
 const treeProps = {
   children: 'children',
@@ -257,15 +221,17 @@ interface TreeDataNode {
   status?: boolean
 }
 
-const resourceTreeData = computed<TreeDataNode[]>(() => {
-  return buildResourceTree()
+const treeData = computed<TreeDataNode[]>(() => {
+  return buildTree()
 })
 
-const voucherTreeData = computed<TreeDataNode[]>(() => {
-  return buildVoucherTree()
-})
+const getNodeIcon = (type: string) => {
+  if (type === 'group') return Folder
+  if (type === 'resource') return Monitor
+  return Key
+}
 
-const buildResourceTree = (): TreeDataNode[] => {
+const buildTree = (): TreeDataNode[] => {
   const groupMap = new Map<number, TreeDataNode>()
   
   store.groups.forEach(g => {
@@ -301,32 +267,6 @@ const buildResourceTree = (): TreeDataNode[] => {
       groupNode.children!.push(resourceNode)
     } else {
       rootGroups.push(resourceNode)
-    }
-  })
-
-  return rootGroups
-}
-
-const buildVoucherTree = (): TreeDataNode[] => {
-  const groupMap = new Map<number, TreeDataNode>()
-  
-  store.groups.forEach(g => {
-    groupMap.set(g.id, {
-      id: g.id,
-      label: g.name,
-      type: 'group',
-      children: [],
-      data: g
-    })
-  })
-
-  const rootGroups: TreeDataNode[] = []
-  store.groups.forEach(g => {
-    const node = groupMap.get(g.id)!
-    if (g.parent && groupMap.has(g.parent)) {
-      groupMap.get(g.parent)!.children!.push(node)
-    } else {
-      rootGroups.push(node)
     }
   })
 
@@ -368,15 +308,11 @@ const selectedDetail = computed<TreeNode | null>(() => {
   return null
 })
 
-const handleResourceClick = (data: TreeDataNode) => {
+const handleNodeClick = (data: TreeDataNode) => {
   if (data.type === 'resource') {
     selectedResource.value = data.data as ResourceType
     selectedVoucher.value = null
-  }
-}
-
-const handleVoucherClick = (data: TreeDataNode) => {
-  if (data.type === 'voucher') {
+  } else if (data.type === 'voucher') {
     selectedVoucher.value = data.data as Voucher
     selectedResource.value = null
   }
@@ -415,16 +351,8 @@ const handleAddVoucher = () => {
   const firstGroup = store.groups[0]
   voucherDialogTitle.value = '新增凭证'
   currentVoucher.value = undefined
-  currentGroupId.value = firstGroup?.id || 0
-  voucherDialogVisible.value = true
-}
-
-const handleAddResourceToGroup = (data: TreeDataNode) => {
-  const group = data.data as ResourceGroup
-  resourceDialogTitle.value = '新增资源'
-  currentResource.value = undefined
   currentGroupId.value = group.id
-  resourceDialogVisible.value = true
+  voucherDialogVisible.value = true
 }
 
 const handleEditGroup = (data: TreeDataNode) => {
@@ -710,8 +638,7 @@ $bg-light: #f8f9fa;
     height: calc(100vh - 180px);
   }
 
-  .resource-panel,
-  .voucher-panel {
+  .resource-panel {
     flex: 1;
     border: 1px solid $border-color;
     border-radius: 6px;

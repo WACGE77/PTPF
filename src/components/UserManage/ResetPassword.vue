@@ -5,6 +5,7 @@
     :rules="formRules"
     label-width="100px"
     class="user-form"
+    validate-on-rule-change
   >
     <el-form-item label="新密码" prop="newPassword">
       <el-input
@@ -29,7 +30,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue';
+import { ref, watch, nextTick } from 'vue';
 import type { User } from '@/struct/rbac.js'
 import api from '@/api'
 import { request_error } from '@/requests'
@@ -52,7 +53,7 @@ const userData = ref<{
 });
 
 // 初始化表单数据
-const init = () => {
+const init = async () => {
   // 重置密码表单初始值
   userData.value = {
     id: user.value?.id || 0,
@@ -60,6 +61,8 @@ const init = () => {
     newPassword: "",
     confirmPassword: "",
   };
+  await nextTick()
+  formRef.value?.validate()
 };
 // 监听用户数据变化，初始化表单
 watch(user, (newVal) => {
@@ -75,7 +78,7 @@ const formRules = ref({
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
     { min: 6, max: 20, message: '密码长度在6-20个字符之间', trigger: 'blur' },
-    //{ pattern: /^(?=.*[a-zA-Z])(?=.*\d)/, message: '密码需包含字母和数字', trigger: 'blur' }
+    { pattern: /^(?=.*[a-zA-Z])(?=.*\d)/, message: '密码需包含字母和数字', trigger: 'blur' }
   ],
   confirmPassword: [
     { required: true, message: '请确认新密码', trigger: 'blur' },

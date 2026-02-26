@@ -1,6 +1,6 @@
 <template>
   <div class="voucher-form">
-    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
+    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" validate-on-rule-change>
       <el-form-item label="资源组" prop="group">
         <el-select v-model="formData.group" placeholder="请选择资源组" style="width: 100%">
           <el-option v-for="g in store.groups" :key="g.id" :label="g.name" :value="g.id" />
@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { resourceStore } from '@/stores/resource'
 import { request_error } from '@/requests'
@@ -55,8 +55,16 @@ const formData = ref({
 })
 
 const validatePassword = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
-  if (!value && !formData.value.private_key) {
+  if (!props.voucher && !value && !formData.value.private_key) {
     callback(new Error('密码或私钥至少填写一个'))
+  } else {
+    callback()
+  }
+}
+
+const validatePrivateKey = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
+  if (value && !value.includes('-----BEGIN')) {
+    callback(new Error('请输入有效的私钥格式'))
   } else {
     callback()
   }
@@ -66,10 +74,11 @@ const formRules = {
   group: [{ required: true, message: '请选择资源组', trigger: 'change' }],
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
   username: [{ required: true, message: '请输入用户名', trigger: 'blur' }],
-  password: [{ validator: validatePassword, trigger: 'blur' }]
+  password: [{ validator: validatePassword, trigger: 'blur' }],
+  private_key: [{ validator: validatePrivateKey, trigger: 'blur' }]
 }
 
-const init = () => {
+const init = async () => {
   if (props.voucher) {
     formData.value = {
       id: props.voucher.id,
@@ -91,9 +100,18 @@ const init = () => {
       group: props.groupId || 0
     }
   }
+  await nextTick()
+  formRef.value?.validate()
 }
 
 const submit = async () => {
+  try {
+    await formRef.value.validate()
+  } catch (error) {
+    ElMessage.error('表单填写有误，请检查必填项！')
+    return
+  }
+
   const data: Record<string, unknown> = {
     name: formData.value.name,
     username: formData.value.username,
@@ -106,11 +124,6 @@ const submit = async () => {
   }
   if (formData.value.private_key) {
     data.private_key = formData.value.private_key
-  }
-
-  if (!formData.value.password && !formData.value.private_key && !props.voucher) {
-    ElMessage.error('密码或私钥至少填写一个')
-    return
   }
 
   try {

@@ -1,6 +1,6 @@
 <template>
   <div class="resource-form">
-    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px">
+    <el-form ref="formRef" :model="formData" :rules="formRules" label-width="100px" validate-on-rule-change>
       <el-form-item label="资源组" prop="group">
         <el-select v-model="formData.group" placeholder="请选择资源组" style="width: 100%">
           <el-option v-for="g in store.groups" :key="g.id" :label="g.name" :value="g.id" />
@@ -26,7 +26,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, watch } from 'vue'
+import { ref, watch, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import { resourceStore } from '@/stores/resource'
 import { request_error } from '@/requests'
@@ -55,8 +55,26 @@ const formData = ref({
 })
 
 const validateIp = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
-  if (!value && !formData.value.ipv6_address) {
+  if (!props.resource && !value && !formData.value.ipv6_address) {
     callback(new Error('IPv4或IPv6地址至少填写一个'))
+  } else if (value && !/^(?:(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)\.){3}(?:25[0-5]|2[0-4][0-9]|[01]?[0-9][0-9]?)$/.test(value)) {
+    callback(new Error('请输入有效的IPv4地址'))
+  } else {
+    callback()
+  }
+}
+
+const validateIpv6 = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
+  if (value && !/^(?:[0-9a-fA-F]{1,4}:){7}[0-9a-fA-F]{1,4}$|^::(?:[0-9a-fA-F]{1,4}:){0,6}[0-9a-fA-F]{1,4}$|^(?:[0-9a-fA-F]{1,4}:){1,7}:$|^(?:[0-9a-fA-F]{1,4}:){1}(?::[0-9a-fA-F]{1,4}){1,6}$|^(?:[0-9a-fA-F]{1,4}:){2}(?::[0-9a-fA-F]{1,4}){1,5}$|^(?:[0-9a-fA-F]{1,4}:){3}(?::[0-9a-fA-F]{1,4}){1,4}$|^(?:[0-9a-fA-F]{1,4}:){4}(?::[0-9a-fA-F]{1,4}){1,3}$|^(?:[0-9a-fA-F]{1,4}:){5}(?::[0-9a-fA-F]{1,4}){1,2}$|^(?:[0-9a-fA-F]{1,4}:){6}:[0-9a-fA-F]{1,4}$/.test(value)) {
+    callback(new Error('请输入有效的IPv6地址'))
+  } else {
+    callback()
+  }
+}
+
+const validatePort = (_rule: unknown, value: number, callback: (error?: Error) => void) => {
+  if (!value || value < 1 || value > 65535) {
+    callback(new Error('端口号范围为1-65535'))
   } else {
     callback()
   }
@@ -66,10 +84,11 @@ const formRules = {
   group: [{ required: true, message: '请选择资源组', trigger: 'change' }],
   name: [{ required: true, message: '请输入名称', trigger: 'blur' }],
   ipv4_address: [{ validator: validateIp, trigger: 'blur' }],
-  port: [{ required: true, message: '请输入端口', trigger: 'blur' }]
+  ipv6_address: [{ validator: validateIpv6, trigger: 'blur' }],
+  port: [{ validator: validatePort, trigger: 'blur' }]
 }
 
-const init = () => {
+const init = async () => {
   if (props.resource) {
     formData.value = {
       id: props.resource.id,
@@ -91,9 +110,18 @@ const init = () => {
       group: props.groupId || 0
     }
   }
+  await nextTick()
+  formRef.value?.validate()
 }
 
 const submit = async () => {
+  try {
+    await formRef.value.validate()
+  } catch (error) {
+    ElMessage.error('表单填写有误，请检查必填项！')
+    return
+  }
+
   const data: Record<string, unknown> = {
     name: formData.value.name,
     ipv4_address: formData.value.ipv4_address || null,
