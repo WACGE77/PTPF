@@ -3,7 +3,7 @@
     <!-- 整体布局容器 -->
     <el-container style="height: 100vh">
       <!-- 侧边导航栏 -->
-      <el-aside width="200px" class="bastion-aside">
+      <el-aside :width="isCollapse ? '0px' : '200px'" class="bastion-aside" :class="{ 'is-collapse': isCollapse }">
         <!-- 系统logo/名称 -->
         <div class="bastion-logo">
           <span>堡垒机管理系统</span>
@@ -53,6 +53,12 @@
           </template>
         </el-menu>
       </el-aside>
+      <!-- 折叠按钮 -->
+      <div class="collapse-btn" @click="toggleCollapse">
+        <el-icon>
+          <component :is="isCollapse ? 'ArrowRight' : 'ArrowLeft'" />
+        </el-icon>
+      </div>
 
       <!-- 右侧主内容区域 -->
       <el-container>
@@ -107,10 +113,19 @@ import { ref } from 'vue'
 import { getIconComponent, type IconName } from '@/utils/iconMap'
 import router from '@/router'
 import { userProfile } from '@/stores/userProfile.ts'
+import { ArrowLeft, ArrowRight } from '@element-plus/icons-vue'
 const userPro = userProfile()
 userPro.getuser()
 // 手动定义 DropdownCommand 类型（解决导入错误）
 type DropdownCommand = string | number | object
+
+// 侧边栏折叠状态
+const isCollapse = ref(false)
+
+// 切换侧边栏折叠状态
+const toggleCollapse = () => {
+  isCollapse.value = !isCollapse.value
+}
 
 // 定义菜单数据类型（图标完全关联IconName）
 interface MenuItem {
@@ -139,7 +154,7 @@ const menuList = ref<MenuItem[]>([
     ],
   },
   {
-    index: '2',
+    index: '/terminal',
     label: 'Web终端',
     icon: 'FullScreen',
   },
@@ -201,6 +216,44 @@ const handleUserCommand = (command: DropdownCommand) => {
 /* 侧边栏样式 */
 .bastion-aside {
   background-color: #2e3b4e;
+  overflow: hidden;
+}
+
+/* 折叠按钮 */
+.collapse-btn {
+  position: fixed;
+  top: 50%;
+  left: 0;
+  transform: translateY(-50%);
+  width: 24px;
+  height: 60px;
+  background-color: #404956;
+  border-radius: 0 4px 4px 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  color: #fff;
+  z-index: 100;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.2);
+  transition: all 0.3s ease;
+}
+
+.collapse-btn:hover {
+  background-color: #4a5568;
+}
+
+/* 侧边栏样式 */
+.bastion-aside {
+  background-color: #2e3b4e;
+  overflow: hidden;
+  transition: all 0.3s ease;
+  position: relative;
+}
+
+/* 折叠状态下的样式 */
+.bastion-aside.is-collapse {
+  width: 0 !important;
   overflow: hidden;
 }
 
