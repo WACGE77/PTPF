@@ -2,12 +2,19 @@ import router from '@/router'
 import axios from 'axios'
 import api from '@/api'
 import { ElMessage } from 'element-plus'
-const BASE_URL = 'https://www.wacgee.icu/api'
-const BASE_WS_URL = 'wss://www.wacgee.icu/api'
+const BASE_URL = 'http://localhost:8000/api'
+const BASE_WS_URL = 'ws://localhost:8000/api'
 let refreshProcess: Promise<boolean> | null = null
 export const request_error = (error:any) => {
   let errMsg:string = ""
-    if (error.response){
+  
+  // 检查error是否直接是错误信息
+  if (typeof error === 'string') {
+    errMsg = error
+  } else if (typeof error === 'object' && error !== null) {
+    // 如果error是对象，尝试获取其中的错误信息
+    if (error.response) {
+      // 处理API响应错误
       const detail = error.response.data.detail
       if(Array.isArray(detail)){
         errMsg = detail[0]
@@ -15,11 +22,23 @@ export const request_error = (error:any) => {
         errMsg = Object.values(detail)[0] as string
       }else if(typeof detail === 'string') {
         errMsg = detail
+      } else if (typeof error.response.data === 'string') {
+        // 直接使用响应数据作为错误信息
+        errMsg = error.response.data
       }
-    }else{
+    } else if (error.message) {
+      // 使用error.message作为错误信息
       errMsg = error.message
+    } else {
+      // 尝试将对象转换为字符串
+      errMsg = JSON.stringify(error)
     }
-    ElMessage.error(errMsg)
+  } else {
+    // 其他情况，使用默认错误信息
+    errMsg = '未知错误'
+  }
+  
+  ElMessage.error(errMsg)
 }
 const refreshToken = () => {
   if (refreshProcess) return refreshProcess
@@ -48,19 +67,26 @@ const requests = axios.create({
 
 requests.interceptors.request.use(
   (config) => {
+    console.log('发送API请求:', config.url)
+    console.log('请求头:', config.headers)
     config.headers.Authorization = localStorage.getItem('token') || ''
     return config
   },
   (error) => {
+    console.error('请求错误:', error)
     return Promise.reject(error)
   },
 )
 
 requests.interceptors.response.use(
   async (response) => {
+    console.log('API响应:', response.config.url, response.status)
+    console.log('响应数据:', response.data)
     return response
   },
   async(error) => {
+    console.error('响应错误:', error.config?.url, error.response?.status)
+    console.error('错误信息:', error.message)
     const originalConfig = error.response?.config
     const url = originalConfig?.url || "";
     const isLoginApi = url.includes("/login");

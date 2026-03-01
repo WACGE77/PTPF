@@ -1,32 +1,46 @@
-interface AuditTime{
-  start_time: string,
-  end_time: string,
-}
-interface User{
-  id: number,
-  name: string
-}
-interface Resource{
-  id: number,
-  name: string
+// 登录日志类型
+export interface LoginLog {
+  id: number
+  user: {
+    id: number
+    name: string
+  }
   ip: string
+  status: string
+  date: string
 }
-interface Voucher{
-  id: number,
-  username: string
+
+// 操作日志类型
+export interface OperaLog {
+  id: number
+  user: {
+    id: number
+    name: string
+  }
+  ip: string
+  operation: string
+  status: boolean
+  date: string
 }
-export interface SessionRecord extends AuditTime {
-  id?: number,
-  user?: User,
-  resource?: Resource,
-  voucher?: Voucher,
-  status?:string,
-  ip?: string
-}
-export interface LoginRecord extends AuditTime {
-  id?: number,
-  user?: User,
-  ip?: string
-  status?:string,
-  date?:string
+
+// 会话日志类型
+export interface SessionLog {
+  id: number
+  user: {
+    id: number
+    name: string
+  }
+  resource: {
+    id: number
+    name: string
+    ip: string
+  }
+  voucher: {
+    id: number
+    username: string
+  }
+  start_time: string
+  end_time: string
+  status: string
+  ip: string
 }

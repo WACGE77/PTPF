@@ -4,7 +4,7 @@
 
 - **基础URL**: `https://设备/api/`
 - **WebSocket**: `ws://设备/api/terminal/`
-- **认证方式**: JWT Token (Bearer Token)
+- **认证方式**: JWT Token
 - **Content-Type**: `application/json`
 
 ## 通用响应格式
@@ -28,22 +28,20 @@
 }
 ```
 
-### 分页参数
-| 参数 | 类型 | 说明 |
-|------|------|------|
-| page_number | int | 页码 (默认1) |
-| page_size | int | 每页数量 (默认10, 最大100) |
-| all | bool | 获取全部数据 |
-| desc | bool | 降序排列 |
-
----
-
 ## 一、认证接口 (rbac)
 
-### 1. 用户登录
-**POST** `/rbac/login/`
+### 1. 登录接口
+- **请求方法**: POST
+- **URL**: `https://设备/api/rbac/login/`
+- **请求头**: `Content-Type: application/json`
 
-**请求体**:
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| account | 是 | 字符串 | 用户账户号用于登录 |
+| password | 是 | 字符串 | 用户密码用于登录 |
+
+#### 请求示例
 ```json
 {
     "account": "administrator",
@@ -51,19 +49,28 @@
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| token.access | 短期token，用于api认证 |
+| token.refresh | 长期token，用于刷新短期token |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
     "msg": "OK",
     "token": {
-        "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzg4MDY4MTgzLCJpYXQiOjE3NzA3ODgxODMsImp0aSI6ImE0MDc5Mzg2Mjg4NTQ0NTBhYWMxM2M1ZjY2ODQxMzRkIiwidXNlcl9pZCI6IjEifQ.y1iMBj0yr-NC9KEdB86_-TYvugj01zIZmL64Rz9Ir0s",
+        "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3MTM5Mjk4MywiaWF0IjoxNzcwNzg4MTgzLCJqdGkiOiI5MTFiMzIwMjg4Njg0NmYyODM3NWIxNzNmZjYyY2ZkZCIsInVzZXJfaWQiOiIxIn0.KtScOFbvP2q6MekeTL2LEFn0fO7r6RdhQEMOva9xDrA"
     }
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 401,
@@ -72,14 +79,25 @@
 }
 ```
 
----
-
 ### 2. 用户登出
-**POST** `/rbac/logout/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/rbac/logout/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 请求示例
+```
+POST https://设备/api/rbac/logout/
+Authorization: <access_token>
+```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -87,33 +105,46 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "detail": "未登录"
 }
 ```
 
----
-
 ### 3. 刷新Token
-**POST** `/rbac/refresh/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/rbac/refresh/`
+- **Cookie**: `refresh=<refresh_token>`
 
-**Cookie**: `refresh=<refresh_token>`
+#### 请求示例
+```
+POST https://设备/api/rbac/refresh/
+Cookie: refresh=<refresh_token>
+```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| token.access | 短期token，用于api认证 |
+| token.refresh | 长期token，用于刷新短期token |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
     "msg": "OK",
     "token": {
-        "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...",
-        "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+        "access": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzg4MDY4MTgzLCJpYXQiOjE3NzA3ODgxODMsImp0aSI6ImE0MDc5Mzg2Mjg4NTQ0NTBhYWMxM2M1ZjY2ODQxMzRkIiwidXNlcl9pZCI6IjEifQ.y1iMBj0yr-NC9KEdB86_-TYvugj01zIZmL64Rz9Ir0s",
+        "refresh": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJ0b2tlbl90eXBlIjoicmVmcmVzaCIsImV4cCI6MTc3MTM5Mjk4MywiaWF0IjoxNzcwNzg4MTgzLCJqdGkiOiI5MTFiMzIwMjg4Njg0NmYyODM3NWIxNzNmZjYyY2ZkZCIsInVzZXJfaWQiOiIxIn0.KtScOFbvP2q6MekeTL2LEFn0fO7r6RdhQEMOva9xDrA"
     }
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -121,16 +152,26 @@
 }
 ```
 
----
-
 ## 二、用户管理 (rbac)
 
 ### 4. 添加用户
-**POST** `/rbac/user/add/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/rbac/user/add/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| account | 是 | 字符串 | 用户账户 |
+| password | 是 | 字符串 | 用户密码 |
+| name | 是 | 字符串 | 用户昵称 |
+| email | 否 | 字符串 | 用户邮箱 |
+| status | 是 | 布尔值 | 用户状态 |
+| phone_number | 否 | 字符串 | 用户电话 |
+| remark | 否 | 字符串 | 备注 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "account": "test11",
@@ -143,7 +184,14 @@
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -151,7 +199,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -162,14 +210,22 @@
 }
 ```
 
----
-
 ### 5. 修改用户
-**POST** `/rbac/user/edit/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/rbac/user/edit/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id | 是 | 整数 | 用户ID |
+| email | 否 | 字符串 | 用户邮箱 |
+| name | 否 | 字符串 | 用户昵称 |
+| phone_number | 否 | 字符串 | 用户电话 |
+| remark | 否 | 字符串 | 备注 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "id": 12,
@@ -180,7 +236,14 @@
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -188,7 +251,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -200,21 +263,32 @@
 }
 ```
 
----
-
 ### 6. 删除用户
-**POST** `/rbac/user/del/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/rbac/user/del/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id_list | 是 | 数组 | 用户ID列表 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "id_list": [1, 2]
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -222,7 +296,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -231,22 +305,35 @@
 }
 ```
 
----
-
 ### 7. 查看用户
-**GET** `/rbac/user/get/`
+- **请求方法**: GET
+- **URL**: `https://设备/api/rbac/user/get/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page_size | int | 每页数量 (默认10, 最大100) |
+| name | string | 用户名搜索 |
+| account | string | 账号搜索 |
+| status | bool | 状态过滤 |
 
-**查询参数**:
-```json
-{
-    "page_size": 2,
-    "name": "tes"
-}
+#### 请求示例
+```
+GET https://设备/api/rbac/user/get/?page_size=2&name=tes
+Authorization: <access_token>
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| total | 总记录数 |
+| detail | 用户列表 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -273,14 +360,19 @@
 }
 ```
 
----
-
 ### 8. 重置自身密码
-**POST** `/rbac/user/reset_password/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/rbac/user/reset_password/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| old_password | 是 | 字符串 | 旧密码 |
+| new_password | 是 | 字符串 | 新密码 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "old_password": "administrator",
@@ -288,7 +380,14 @@
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -296,7 +395,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -307,14 +406,26 @@
 }
 ```
 
----
-
 ### 9. 查询自身信息
-**GET** `/rbac/user/detail/`
+- **请求方法**: GET
+- **URL**: `https://设备/api/rbac/user/detail/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 请求示例
+```
+GET https://设备/api/rbac/user/detail/
+Authorization: <access_token>
+```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| detail | 用户信息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -338,14 +449,19 @@
 }
 ```
 
----
-
 ### 10. 绑定用户角色
-**POST** `/rbac/user/role/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/rbac/user/role/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id | 是 | 整数 | 用户ID |
+| roles | 是 | 数组 | 角色ID列表 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "id": 1,
@@ -353,7 +469,14 @@
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -361,7 +484,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -370,16 +493,22 @@
 }
 ```
 
----
-
 ## 三、角色管理 (rbac)
 
 ### 11. 添加角色
-**POST** `/rbac/role/add/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/rbac/role/add/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| name | 是 | 字符串 | 角色名称 |
+| code | 是 | 字符串 | 角色编码 |
+| description | 否 | 字符串 | 角色描述 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "name": "test",
@@ -388,7 +517,14 @@
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -396,7 +532,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -408,14 +544,21 @@
 }
 ```
 
----
-
 ### 12. 修改角色
-**POST** `/rbac/role/edit/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/rbac/role/edit/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id | 是 | 整数 | 角色ID |
+| name | 否 | 字符串 | 角色名称 |
+| code | 否 | 字符串 | 角色编码 |
+| description | 否 | 字符串 | 角色描述 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "id": 2,
@@ -425,7 +568,14 @@
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -433,7 +583,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -442,21 +592,33 @@
 }
 ```
 
----
-
 ### 13. 删除角色
-**POST** `/rbac/role/del/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/rbac/role/del/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id_list | 是 | 数组 | 角色ID列表 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "id_list": [1, 2]
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| total | 删除数量 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -465,7 +627,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -474,23 +636,34 @@
 }
 ```
 
----
-
 ### 14. 查看角色
-**GET** `/rbac/role/get/`
+- **请求方法**: GET
+- **URL**: `https://设备/api/rbac/role/get/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page_size | int | 每页数量 (默认10, 最大100) |
+| all | bool | 获取全部数据 |
+| name | string | 角色名称搜索 |
 
-**查询参数**:
-```json
-{
-    "page_size": 1,
-    "all": true,
-    "name": "管"
-}
+#### 请求示例
+```
+GET https://设备/api/rbac/role/get/?page_size=1&all=true&name=管
+Authorization: <access_token>
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| total | 总记录数 |
+| detail | 角色列表 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -512,21 +685,31 @@
 }
 ```
 
----
-
 ### 15. 查看角色系统权限
-**GET** `/rbac/role/get/permission/`
+- **请求方法**: GET
+- **URL**: `https://设备/api/rbac/role/get/permission/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| id | int | 角色ID |
 
-**查询参数**:
-```json
-{
-    "id": 1
-}
+#### 请求示例
+```
+GET https://设备/api/rbac/role/get/permission/?id=1
+Authorization: <access_token>
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| detail | 角色权限信息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -538,21 +721,26 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "detail": "未找到。"
 }
 ```
 
----
-
 ### 16. 授权角色系统权限
-**POST** `/rbac/role/edit/permission/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/rbac/role/edit/permission/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id | 是 | 整数 | 角色ID |
+| perms | 是 | 数组 | 权限ID列表 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "id": 5,
@@ -560,7 +748,14 @@
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -568,7 +763,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -579,14 +774,26 @@
 }
 ```
 
----
-
 ### 17. 获取权限列表
-**GET** `/rbac/perm/`
+- **请求方法**: GET
+- **URL**: `https://设备/api/rbac/perm/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 请求示例
+```
+GET https://设备/api/rbac/perm/
+Authorization: <access_token>
+```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| detail | 权限列表 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -604,23 +811,33 @@
 }
 ```
 
----
-
 ## 四、资源组权限管理 (perm)
 
 ### 18. 查看角色资源组权限
-**GET** `/perm/group-auth/get/`
+- **请求方法**: GET
+- **URL**: `https://设备/api/perm/group-auth/get/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| role_id | int | 角色ID |
 
-**查询参数**:
-```json
-{
-    "role_id": 1
-}
+#### 请求示例
+```
+GET https://设备/api/perm/group-auth/get/?role_id=1
+Authorization: <access_token>
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| detail | 角色资源组权限列表 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -638,21 +855,26 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "detail": "未找到。"
 }
 ```
 
----
-
 ### 19. 授权角色资源组权限
-**POST** `/perm/group-auth/edit/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/perm/group-auth/edit/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| role_id | 是 | 整数 | 角色ID |
+| groups | 是 | 数组 | 资源组权限列表 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "role_id": 1,
@@ -665,17 +887,25 @@
 }
 ```
 
-**说明**: permission数组内的值为权限ID，
+#### 说明
+- permission数组内的值为权限ID，范围16-23
 
-**响应**:
-范围16-23```json
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
+```json
 {
     "code": 200,
     "msg": "OK"
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -692,16 +922,27 @@
 }
 ```
 
----
-
 ## 五、资源组管理 (resource)
 
 ### 20. 添加资源组
-**POST** `/resource/group/add/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/resource/group/add/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| name | 是 | 字符串 | 资源组名称 |
+| description | 否 | 字符串 | 资源组描述 |
+| parent | 否 | 整数 | 父资源组ID |
+| role | 否 | 整数 | 角色ID（顶级组需要） |
 
-**请求体**:
+#### 说明
+- 顶级组不需要 parent，但需要 role
+- 子组需要 parent，且需要拥有父级组的资源管理权限
+
+#### 请求示例
 ```json
 {
     "name": "测试组",
@@ -711,11 +952,14 @@
 }
 ```
 
-**说明**: 
-- 顶级组不需要 parent，但需要 role
-- 子组需要 parent，且需要拥有父级组的资源管理权限
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
 
-**响应**:
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -723,7 +967,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -734,14 +978,20 @@
 }
 ```
 
----
-
 ### 21. 修改资源组
-**POST** `/resource/group/edit/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/resource/group/edit/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id | 是 | 整数 | 资源组ID |
+| description | 否 | 字符串 | 资源组描述 |
+| name | 否 | 字符串 | 资源组名称 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "id": 3,
@@ -749,7 +999,14 @@
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -757,7 +1014,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -766,21 +1023,32 @@
 }
 ```
 
----
-
 ### 22. 删除资源组
-**POST** `/resource/group/del/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/resource/group/del/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id_list | 是 | 数组 | 资源组ID列表 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "id_list": [1, 2]
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -788,7 +1056,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -797,14 +1065,27 @@
 }
 ```
 
----
-
 ### 23. 查看资源组
-**GET** `/resource/group/get/`
+- **请求方法**: GET
+- **URL**: `https://设备/api/resource/group/get/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 请求示例
+```
+GET https://设备/api/resource/group/get/
+Authorization: <access_token>
+```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| total | 总记录数 |
+| detail | 资源组列表 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -826,7 +1107,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 403,
@@ -834,16 +1115,25 @@
 }
 ```
 
----
-
 ## 六、资源管理 (resource)
 
 ### 24. 添加资源
-**POST** `/resource/resource/add/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/resource/resource/add/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| name | 是 | 字符串 | 资源名称 |
+| ipv4_address | 是 | 字符串 | IPv4地址 |
+| group | 是 | 整数 | 资源组ID |
+| protocol | 是 | 整数 | 协议ID |
+| port | 否 | 整数 | 端口 |
+| description | 否 | 字符串 | 描述 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "name": "ptp",
@@ -853,7 +1143,14 @@
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -861,7 +1158,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -872,14 +1169,22 @@
 }
 ```
 
----
-
 ### 25. 修改资源
-**POST** `/resource/resource/edit/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/resource/resource/edit/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id | 是 | 整数 | 资源ID |
+| description | 否 | 字符串 | 描述 |
+| name | 否 | 字符串 | 资源名称 |
+| ipv4_address | 否 | 字符串 | IPv4地址 |
+| port | 否 | 整数 | 端口 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "id": 3,
@@ -887,7 +1192,14 @@
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -895,28 +1207,39 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "detail": "有关联当前组数据,无法切组"
 }
 ```
 
----
-
 ### 26. 删除资源
-**POST** `/resource/resource/del/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/resource/resource/del/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id_list | 是 | 数组 | 资源ID列表 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "id_list": [1, 2]
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -924,21 +1247,43 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "detail": "错误参数"
 }
 ```
 
----
-
 ### 27. 查看资源
-**GET** `/resource/resource/get/`
+- **请求方法**: GET
+- **URL**: `https://设备/api/resource/resource/get/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page_size | int | 每页数量 (默认10, 最大100) |
+| all | bool | 获取全部数据 |
+| name | string | 资源名称搜索 |
+| group | int | 资源组ID过滤 |
 
-**响应**:
+#### 请求示例
+```
+GET https://设备/api/resource/resource/get/
+Authorization: <access_token>
+```
+
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| total | 总记录数 |
+| detail | 资源列表 |
+| extra | 资源组列表 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -986,7 +1331,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 403,
@@ -994,16 +1339,28 @@
 }
 ```
 
----
-
 ## 七、凭证管理 (resource)
 
 ### 28. 添加凭证
-**POST** `/resource/voucher/add/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/resource/voucher/add/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| name | 是 | 字符串 | 凭证名称 |
+| username | 是 | 字符串 | 用户名 |
+| password | 二选一 | 字符串 | 密码（与private_key二选一） |
+| private_key | 二选一 | 字符串 | 私钥（与password二选一） |
+| group | 是 | 整数 | 资源组ID |
+| description | 否 | 字符串 | 描述 |
 
-**请求体**:
+#### 注意
+- `password` 和 `private_key` 必须二选一
+
+#### 请求示例
 ```json
 {
     "name": "ptp",
@@ -1013,9 +1370,14 @@
 }
 ```
 
-**注意**: `password` 和 `private_key` 必须二选一
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
 
-**响应**:
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -1023,7 +1385,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 400,
@@ -1034,14 +1396,27 @@
 }
 ```
 
----
-
 ### 29. 修改凭证
-**POST** `/resource/voucher/edit/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/resource/voucher/edit/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id | 是 | 整数 | 凭证ID |
+| name | 否 | 字符串 | 凭证名称 |
+| username | 否 | 字符串 | 用户名 |
+| password | 二选一 | 字符串 | 密码（与private_key二选一） |
+| private_key | 二选一 | 字符串 | 私钥（与password二选一） |
+| description | 否 | 字符串 | 描述 |
+| group | 否 | 整数 | 资源组ID |
 
-**请求体**:
+#### 注意
+- 修改凭证时，`password` 和 `private_key` 必须二选一（如果要修改认证信息）
+
+#### 请求示例
 ```json
 {
     "id": 1,
@@ -1054,7 +1429,14 @@
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -1062,28 +1444,39 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "detail": "有关联当前组数据,无法切组"
 }
 ```
 
----
-
 ### 30. 删除凭证
-**POST** `/resource/voucher/del/`
+- **请求方法**: POST
+- **URL**: `https://设备/api/resource/voucher/del/`
+- **请求头**: `Authorization: <access_token>`
+- **请求头**: `Content-Type: application/json`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| id_list | 是 | 数组 | 凭证ID列表 |
 
-**请求体**:
+#### 请求示例
 ```json
 {
     "id_list": [1, 2]
 }
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -1091,21 +1484,41 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "detail": "错误参数"
 }
 ```
 
----
-
 ### 31. 查看凭证
-**GET** `/resource/voucher/get/`
+- **请求方法**: GET
+- **URL**: `https://设备/api/resource/voucher/get/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| page_size | int | 每页数量 (默认10, 最大100) |
+| all | bool | 获取全部数据 |
+| group | int | 资源组ID过滤 |
 
-**响应**:
+#### 请求示例
+```
+GET https://设备/api/resource/voucher/get/
+Authorization: <access_token>
+```
+
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| total | 总记录数 |
+| detail | 凭证列表 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -1126,7 +1539,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 403,
@@ -1134,24 +1547,36 @@
 }
 ```
 
----
-
 ## 八、审计日志 (audit)
 
 ### 32. 查看登录日志
-**GET** `/audit/login/get/`
+- **请求方法**: GET
+- **URL**: `https://设备/api/audit/login/get/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| self | bool | 是否只查看自己的日志 |
+| desc | bool | 是否降序排列 |
+| page_size | int | 每页数量 (默认10, 最大100) |
 
-**查询参数**:
-```json
-{
-    "self": true,
-    "desc": true
-}
+#### 请求示例
+```
+GET https://设备/api/audit/login/get/?self=true&desc=true
+Authorization: <access_token>
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| total | 总记录数 |
+| detail | 登录日志列表 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -1173,7 +1598,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 403,
@@ -1181,22 +1606,34 @@
 }
 ```
 
----
-
 ### 33. 查看操作日志
-**GET** `/audit/opera/get/`
+- **请求方法**: GET
+- **URL**: `https://设备/api/audit/opera/get/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| self | bool | 是否只查看自己的日志 |
+| operation | string | 操作类型搜索 |
+| page_size | int | 每页数量 (默认10, 最大100) |
 
-**查询参数**:
-```json
-{
-    "self": true,
-    "operation": "添加"
-}
+#### 请求示例
+```
+GET https://设备/api/audit/opera/get/?self=true&operation=添加
+Authorization: <access_token>
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| total | 总记录数 |
+| detail | 操作日志列表 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -1219,7 +1656,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 403,
@@ -1227,22 +1664,34 @@
 }
 ```
 
----
-
 ### 34. 查看会话日志
-**GET** `/audit/session/get/`
+- **请求方法**: GET
+- **URL**: `https://设备/api/audit/session/get/`
+- **请求头**: `Authorization: <access_token>`
 
-**请求头**: `Authorization: Bearer <access_token>`
+#### 查询参数
+| 参数 | 类型 | 说明 |
+|------|------|------|
+| self | bool | 是否只查看自己的日志 |
+| resource | string | 资源名称搜索 |
+| page_size | int | 每页数量 (默认10, 最大100) |
 
-**查询参数**:
-```json
-{
-    "self": true,
-    "resource": "p"
-}
+#### 请求示例
+```
+GET https://设备/api/audit/session/get/?self=true&resource=p
+Authorization: <access_token>
 ```
 
-**响应**:
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| total | 总记录数 |
+| detail | 会话日志列表 |
+
+#### 返回示例
+- **成功时返回**
 ```json
 {
     "code": 200,
@@ -1274,7 +1723,7 @@
 }
 ```
 
-**异常响应**:
+- **异常时返回**
 ```json
 {
     "code": 403,
@@ -1282,19 +1731,17 @@
 }
 ```
 
----
-
 ## 九、WebSocket SSH连接 (terminal)
 
 ### 35. SSH连接
-**WebSocket** `/terminal/ssh/`
+- **WebSocket**: `ws://设备/api/terminal/ssh/`
 
-**连接参数** (Query String):
+#### 连接参数 (Query String)
 ```
 ws://设备/api/terminal/ssh/?token=<access_token>&resource_id=1&voucher_id=1
 ```
 
-**消息格式** (客户端 → 服务器):
+#### 消息格式 (客户端 → 服务器)
 ```json
 {
     "type": 1,
@@ -1314,12 +1761,81 @@ ws://设备/api/terminal/ssh/?token=<access_token>&resource_id=1&voucher_id=1
 ```
 - Type 2: 发送命令
 
-**消息格式** (服务器 → 客户端):
+#### 消息格式 (服务器 → 客户端)
 - 直接发送终端输出文本
 
-**关闭连接**: 发送空消息或关闭WebSocket
+#### 关闭连接
+- 发送空消息或关闭WebSocket
 
----
+## 十、动态路由 API (rbac)
+
+### 36. 获取动态路由
+- **请求方法**: GET
+- **URL**: `https://设备/api/rbac/routes/`
+- **请求头**: `Authorization: <access_token>`
+
+#### 请求示例
+```
+GET https://设备/api/rbac/routes/
+Authorization: <access_token>
+```
+
+#### 返回说明
+| 字段 | 说明 |
+|------|------|
+| code | 状态码 |
+| msg | 消息 |
+| detail | 路由列表 |
+
+#### 返回示例
+- **成功时返回**
+```json
+{
+    "code": 200,
+    "msg": "OK",
+    "detail": [
+        {
+            "path": "/overview",
+            "component": "@/views/IndexPage.vue",
+            "meta": {
+                "title": "概览",
+                "icon": "Monitor",
+                "permission": "system.user.read"
+            },
+            "children": []
+        },
+        {
+            "path": "permission_manage",
+            "component": "",
+            "meta": {
+                "title": "权限管理",
+                "icon": "User",
+                "permission": null
+            },
+            "children": []
+        },
+        {
+            "path": "/audit",
+            "component": "@/views/AuditView.vue",
+            "meta": {
+                "title": "审计日志",
+                "icon": "Document",
+                "permission": "audit.session.read"
+            },
+            "children": []
+        }
+    ]
+}
+```
+
+- **异常时返回**
+```json
+{
+    "code": 401,
+    "msg": "未登录",
+    "detail": "未登录或Token过期"
+}
+```
 
 ## 错误码说明
 

@@ -283,7 +283,7 @@ $bg-light: #f8f9fa;
       flex-direction: column;
       overflow: hidden;
       background-color: #ffffff;
-      width: calc(100% - 250px);
+      min-width: 0;
     }
   }
 }

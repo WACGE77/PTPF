@@ -49,10 +49,11 @@ const authApi = {
 }
 
 const permissionApi = {
-  getSystemPermission:(data:Record<string, unknown>) => requests.get('rbac/role/get/permission/',data),
-  setSystemPermission:(data:Record<string, unknown>) => requests.post('rbac/group-auth/edit/',data),
+  getSystemPermission:(data:Record<string, unknown>) => requests.get('/rbac/role/get/permission/',data),
+  setSystemPermission:(data:Record<string, unknown>) => requests.post('/rbac/role/edit/permission/',data),
   getGroupPermission:(data:Record<string, unknown>) => requests.post('/rbac/group-auth/edit/',data),
-  userBind:(data:Record<string, unknown>) => requests.post('/rbac/user/role/',data)
+  userBind:(data:Record<string, unknown>) => requests.post('/rbac/user/role/',data),
+  getPermissionList:(data:Record<string, unknown>) => requests.get('/rbac/perm/',data)
 }
 
 const auditApi = {
@@ -61,13 +62,21 @@ const auditApi = {
   sessionLog: (data:Record<string, unknown>) => requests.get('/audit/session/get/',data)
 }
 
+const routeApi = {
+  getRoutes: () => {
+    console.log('调用getRoutes API...')
+    return requests.get('/rbac/routes/', {})
+  } 
+}
+
 export default {
   userApi,
   roleApi,
+  groupApi,
+  permissionApi,
   resourceApi,
   voucherApi,
   authApi,
-  permissionApi,
   auditApi,
-  groupApi
+  routeApi
 }

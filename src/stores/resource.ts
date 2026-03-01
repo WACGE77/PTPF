@@ -1,8 +1,10 @@
 import { defineStore } from 'pinia'
 import { reactive } from 'vue'
 import api from '@/api/index'
-import { request_error } from '@/requests'
+import requests from '@/requests'
 import type { ResourceGroup, Resource, Voucher, TreeNode } from '@/struct/resource'
+
+const request_error = requests.request_error
 
 export const resourceStore = defineStore('resource', () => {
   const groups = reactive<ResourceGroup[]>([])
@@ -58,8 +60,11 @@ export const resourceStore = defineStore('resource', () => {
     buildTreeData()
   }
 
-  const buildTreeData = () => {
+  // 通用的树构建方法，支持指定包含的节点类型
+  const buildTree = (includeTypes: ('resource' | 'voucher')[] = ['resource', 'voucher']): TreeNode[] => {
     const groupMap = new Map<number, TreeNode>()
+    
+    // 构建组节点
     groups.forEach(g => {
       groupMap.set(g.id, {
         id: g.id,
@@ -70,6 +75,7 @@ export const resourceStore = defineStore('resource', () => {
       })
     })
 
+    // 构建组之间的父子关系
     const rootGroups: TreeNode[] = []
     groups.forEach(g => {
       const node = groupMap.get(g.id)!
@@ -80,34 +86,60 @@ export const resourceStore = defineStore('resource', () => {
       }
     })
 
-    resources.forEach(r => {
-      const resourceNode: TreeNode = {
-        id: r.id,
-        label: r.name,
-        type: 'resource',
-        children: [],
-        data: r
-      }
-      const groupNode = groupMap.get(r.group)
-      if (groupNode) {
-        groupNode.children!.push(resourceNode)
-      }
-    })
+    // 根据类型添加资源节点
+    if (includeTypes.includes('resource')) {
+      resources.forEach(r => {
+        const resourceNode: TreeNode = {
+          id: r.id,
+          label: r.name,
+          type: 'resource',
+          children: [],
+          data: r
+        }
+        const groupNode = groupMap.get(r.group)
+        if (groupNode) {
+          groupNode.children!.push(resourceNode)
+        } else {
+          rootGroups.push(resourceNode)
+        }
+      })
+    }
 
-    vouchers.forEach(v => {
-      const voucherNode: TreeNode = {
-        id: v.id,
-        label: v.name,
-        type: 'voucher',
-        data: v
-      }
-      const groupNode = groupMap.get(v.group)
-      if (groupNode) {
-        groupNode.children!.push(voucherNode)
-      }
-    })
+    // 根据类型添加凭证节点
+    if (includeTypes.includes('voucher')) {
+      vouchers.forEach(v => {
+        const voucherNode: TreeNode = {
+          id: v.id,
+          label: v.name,
+          type: 'voucher',
+          data: v
+        }
+        const groupNode = groupMap.get(v.group)
+        if (groupNode) {
+          groupNode.children!.push(voucherNode)
+        } else {
+          rootGroups.push(voucherNode)
+        }
+      })
+    }
 
-    treeData.splice(0, treeData.length, ...rootGroups)
+    return rootGroups
+  }
+
+  // 构建完整的树形数据（包含资源和凭证）
+  const buildTreeData = () => {
+    const result = buildTree(['resource', 'voucher'])
+    treeData.splice(0, treeData.length, ...result)
+  }
+
+  // 便捷方法：构建只包含资源的树
+  const buildResourceTree = (): TreeNode[] => {
+    return buildTree(['resource'])
+  }
+
+  // 便捷方法：构建只包含凭证的树
+  const buildVoucherTree = (): TreeNode[] => {
+    return buildTree(['voucher'])
   }
 
   const getResourcesByGroup = (groupId: number) => {
@@ -188,6 +220,9 @@ export const resourceStore = defineStore('resource', () => {
     deleteResource,
     addVoucher,
     updateVoucher,
-    deleteVoucher
+    deleteVoucher,
+    buildTree,
+    buildResourceTree,
+    buildVoucherTree
   }
 })

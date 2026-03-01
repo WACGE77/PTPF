@@ -237,9 +237,11 @@ import VoucherForm from '@/components/ResourceManage/VoucherForm.vue'
 import BindVoucher from '@/components/ResourceManage/BindVoucher.vue'
 import ResourceDetail from '@/components/ResourceManage/ResourceDetail.vue'
 import { resourceStore } from '@/stores/resource'
-import { request_error } from '@/requests'
+import requests from '@/requests'
 import type { ResourceGroup, Resource as ResourceType, Voucher, TreeNode } from '@/struct/resource.ts'
 import { Folder, Monitor, Key } from '@element-plus/icons-vue'
+
+const request_error = requests.request_error
 
 const store = resourceStore()
 
@@ -269,95 +271,12 @@ const getNodeIcon = (type: string) => {
   return Key
 }
 
-const buildResourceTree = (): TreeDataNode[] => {
-  const groupMap = new Map<number, TreeDataNode>()
-  
-  store.groups.forEach(g => {
-    groupMap.set(g.id, {
-      id: g.id,
-      label: g.name,
-      type: 'group',
-      children: [],
-      data: g
-    })
-  })
-
-  const rootGroups: TreeDataNode[] = []
-  store.groups.forEach(g => {
-    const node = groupMap.get(g.id)!
-    if (g.parent && groupMap.has(g.parent)) {
-      groupMap.get(g.parent)!.children!.push(node)
-    } else {
-      rootGroups.push(node)
-    }
-  })
-
-  store.resources.forEach(r => {
-    const resourceNode: TreeDataNode = {
-      id: r.id,
-      label: r.name,
-      type: 'resource',
-      data: r,
-      status: r.status
-    }
-    const groupNode = groupMap.get(r.group)
-    if (groupNode) {
-      groupNode.children!.push(resourceNode)
-    } else {
-      rootGroups.push(resourceNode)
-    }
-  })
-
-  return rootGroups
-}
-
-const buildVoucherTree = (): TreeDataNode[] => {
-  const groupMap = new Map<number, TreeDataNode>()
-  
-  store.groups.forEach(g => {
-    groupMap.set(g.id, {
-      id: g.id,
-      label: g.name,
-      type: 'group',
-      children: [],
-      data: g
-    })
-  })
-
-  const rootGroups: TreeDataNode[] = []
-  store.groups.forEach(g => {
-    const node = groupMap.get(g.id)!
-    if (g.parent && groupMap.has(g.parent)) {
-      groupMap.get(g.parent)!.children!.push(node)
-    } else {
-      rootGroups.push(node)
-    }
-  })
-
-  store.vouchers.forEach(v => {
-    const voucherNode: TreeDataNode = {
-      id: v.id,
-      label: v.name,
-      type: 'voucher',
-      data: v
-    }
-    const groupNode = groupMap.get(v.group)
-    if (groupNode) {
-      groupNode.children!.push(voucherNode)
-    } else {
-      rootGroups.push(voucherNode)
-    }
-  })
-
-  return rootGroups
-}
-
 const resourceTreeData = computed<TreeDataNode[]>(() => {
-  return buildResourceTree()
+  return store.buildResourceTree() as TreeDataNode[]
 })
 
 const voucherTreeData = computed<TreeDataNode[]>(() => {
-  return buildVoucherTree()
+  return store.buildVoucherTree() as TreeDataNode[]
 })
 
 const selectedDetail = computed<TreeNode | null>(() => {
@@ -696,7 +615,13 @@ const handleDeleteFromDetail = async (type: 'resource' | 'voucher', data: any) =
 }
 
 onMounted(() => {
-  store.loadAll()
+  console.log('ResourceManage component mounted')
+  try {
+    store.loadAll()
+    console.log('loadAll called successfully')
+  } catch (error) {
+    console.error('Error loading resources:', error)
+  }
 })
 </script>
 

@@ -1,41 +1,52 @@
 import { createRouter, createWebHistory } from 'vue-router'
+import { useRouteStore } from '@/stores/route'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
-    {path:'/test',component : () => import('@/components/UserManage/ResetPassword.vue')},
     { path: '/', redirect: '/home' },
     { path: '/login', component: () => import('@/views/LoginView.vue') },
-    //{ path: '/login', component: () => import('@/components/SShTerminal/SSHTabs.vue') },
     {
       path: '/home',
+      name: 'home',
       component: () => import('@/views/HomeView.vue'),
       redirect: '/overview',
-      //以下现为静态,后续改为动态
       children: [
-        {path:'/test',component:() => import('@/components/SShTerminal/SSHTabs.vue')},
-        //{path:'/profile',component:()=>import('@/views/profile.vue')}
+        // 基础静态路由
         { path: '/overview', component: () => import('@/views/IndexPage.vue') },
-        { path: '/terminal', component: () => import('@/views/TerminalView.vue') },
-        // { path: '/role', component: () => import('@/views/roleManage/IndexView.vue') },
-        { path: '/user', component: () => import('@/views/UserManage.vue') },
-        { path: '/role', component: () => import('@/views/RoleManage.vue') },
-        // { path: '/voucher', component: () => import('@/views/voucherManage/IndexView.vue') },
-        // { path: '/resource', component: () => import('@/views/resourceManage/IndexView.vue') },
-        { path: '/resource', component: () => import('@/views/ResourceManage.vue') },
-        // { path: '/audit', component: () => import('@/views/auditView/IndexView.vue') },
       ],
     },
   ],
 })
 
+// 路由守卫，实现动态路由加载
 router.beforeEach((to, from, next) => {
+  // 从localStorage获取token
   const token: string | null = localStorage.getItem('token')
+  
+  // 如果没有token且不是登录页，重定向到登录页面
   if (to.path !== '/login' && !token) {
     next('/login')
     return
   }
-  next()
+  
+  // 如果已经有token且不是登录页，尝试加载动态路由
+  if (token && to.path !== '/login') {
+    const routeStore = useRouteStore()
+    if (!routeStore.isRoutesLoaded) {
+      routeStore.loadRoutes().then(() => {
+        // 动态路由加载完成后，重新导航到目标路径
+        next({ ...to, replace: true })
+      }).catch(() => {
+        // 加载失败，继续导航
+        next()
+      })
+    } else {
+      next()
+    }
+  } else {
+    next()
+  }
 })
 
 export default router

@@ -1,7 +1,10 @@
 <template>
   <div class="ssh-terminal-tabs">
-    <BlankPage :flag="!tabs.length"></BlankPage>
+    <div v-if="!tabs.length" class="blank-container">
+      <BlankPage :flag="!tabs.length"></BlankPage>
+    </div>
     <el-tabs
+      v-else
       v-model="activeTab"
       @tab-remove="tab_remove"
       @tab-change="tab_change"
@@ -120,6 +123,15 @@ $border-color: #e6e6e6;
   flex-direction: column;
   overflow: hidden;
 
+  .blank-container {
+    flex: 1;
+    display: flex;
+    width: 100%;
+    height: 100%;
+    align-items: center;
+    justify-content: center;
+  }
+
   :deep(.el-tabs) {
     flex: 1;
     display: flex;
@@ -137,6 +149,12 @@ $border-color: #e6e6e6;
 
     .el-tabs__header {
       margin: 0;
+    }
+
+    .el-tab-pane {
+      flex: 1;
+      display: flex;
+      width: 100%;
     }
   }
 

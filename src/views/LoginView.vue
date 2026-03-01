@@ -1,5 +1,9 @@
 <template>
   <div class="login-page">
+    <!-- 页面加载动画 -->
+    <div v-if="isPageLoading" class="page-loading">
+      <el-loading :fullscreen="true" text="加载中..." />
+    </div>
     <!-- 登录主体容器 -->
     <div class="login-container">
       <!-- 左侧品牌展示区 -->
@@ -65,7 +69,7 @@
               type="primary"
               class="login-btn"
               size="large"
-              :loading="isLoading"
+              :loading="isLoginLoading"
               @click="handleLogin"
             >
               登录
@@ -79,13 +83,14 @@
 
 <script lang="ts" setup>
 import { getIconComponent } from '@/utils/iconMap.ts'
-import { ref } from 'vue'
+import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import api from '@/api/index.ts'
 import {request_error} from '@/requests'
 import router from '@/router'
 const formRef = ref()
-const isLoading = ref(false) // 登录加载状态
+const isPageLoading = ref(true) // 页面加载状态
+const isLoginLoading = ref(false) // 登录按钮加载状态
 const loginForm = ref({
   account: '',
   password: '',
@@ -107,21 +112,62 @@ const loginRule = ref({
 })
 // 登录处理函数
 const handleLogin = async () => {
-  isLoading.value = true
+  isLoginLoading.value = true
   try {
     const res = await api.authApi.login(loginForm.value)
-    if (res.status == 200) {
-      const token = res.data.token.access
-      localStorage.setItem('token', token)
-      ElMessage.success('登录成功！')
-      await router.push('/home')
+    console.log('登录响应:', res)
+    if (res.data.code == 200) {
+      // 检查响应结构
+      if (res.data.token) {
+        // 格式1: { code: 200, token: { access: '...' } }
+        const token = res.data.token.access
+        localStorage.setItem('token', token)
+        ElMessage.success('登录成功！')
+        await router.push('/home')
+      } else if (res.data.detail && res.data.detail.token) {
+        // 格式2: { code: 200, detail: { token: { access: '...' } } }
+        const token = res.data.detail.token.access
+        localStorage.setItem('token', token)
+        ElMessage.success('登录成功！')
+        await router.push('/home')
+      } else {
+        // 响应格式不符合预期
+        console.error('响应格式错误:', res.data)
+        ElMessage.error('登录失败：响应格式错误')
+      }
+    } else {
+      // 登录失败
+      if (typeof res.data === 'string') {
+        // 直接返回字符串错误信息
+        ElMessage.error(`登录失败：${res.data}`)
+      } else if (typeof res.data === 'object' && res.data !== null) {
+        // 返回对象错误信息
+        if (res.data.msg) {
+          ElMessage.error(`登录失败：${res.data.msg}`)
+        } else if (res.data.detail) {
+          ElMessage.error(`登录失败：${res.data.detail}`)
+        } else {
+          // 尝试将对象转换为字符串
+          ElMessage.error(`登录失败：${JSON.stringify(res.data)}`)
+        }
+      } else {
+        ElMessage.error('登录失败：未知错误')
+      }
     }
   } catch (error:any) {
+    console.error('登录错误:', error)
     request_error(error)
   } finally {
-    isLoading.value = false
+    isLoginLoading.value = false
   }
 }
+
+// 组件挂载后隐藏加载动画
+onMounted(() => {
+  setTimeout(() => {
+    isPageLoading.value = false
+  }, 500)
+})
 </script>
 
 <style scoped>
