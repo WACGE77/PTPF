@@ -31,7 +31,7 @@ export interface Resource {
   create_date: string
   update_date: string
   group: number
-  protocol: number
+  protocols: number[]
   vouchers: Voucher[]
 }
 

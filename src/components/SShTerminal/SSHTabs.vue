@@ -17,7 +17,7 @@
       >
         <template #label>
           <div class="tab-label">
-            <span>{{ tab.resourceName }}</span>
+            <span>{{ tab.resourceName }} ({{ tab.type.toUpperCase() }})</span>
             <el-dropdown @click.stop>
               <el-button size="small" text>
                 <el-icon><More /></el-icon>
@@ -37,6 +37,24 @@
           }"
           style="flex: 1; width: 100%; height: 100%;"
         >
+          <!-- RDP 连接状态显示 -->
+          <div v-if="tab.type === 'rdp'" class="rdp-status-container">
+            <div v-if="getRdpStatus(tab) === 'disconnected'" class="status disconnected">
+              <el-button type="primary" @click="reconnectTab(tab)">连接</el-button>
+            </div>
+            <div v-else-if="getRdpStatus(tab) === 'connecting'" class="status connecting">
+              <el-loading text="连接中..." />
+            </div>
+            <div v-else-if="getRdpStatus(tab) === 'error'" class="status error">
+              <el-alert
+                title="连接失败"
+                type="error"
+                :description="getRdpErrorMessage(tab)"
+                show-icon
+              />
+              <el-button type="primary" @click="reconnectTab(tab)">重新连接</el-button>
+            </div>
+          </div>
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -47,27 +65,38 @@ import { nextTick, onBeforeUnmount, ref } from 'vue'
 import { More } from '@element-plus/icons-vue'
 import type { Dom, terminalTab } from '@/struct/terminal.ts'
 import Shell from '@/utils/terminal.ts'
+import RdpShell from '@/utils/rdpTerminal.ts'
 import BlankPage from '@/components/SShTerminal/BlankPage.vue'
 
-const tabs = ref<Array<terminalTab & { resourceName: string, resourceId: number, voucherId: number, token: string }>>([])
+const tabs = ref<Array<terminalTab>>([])
 const activeTab = ref<string>()
 
 const find_ele = (key: string) => {
   return tabs.value.find(tab => tab.name === key)
 }
 
-const session_add = async (resource: number, voucher: number, token: string, resourceName: string) => {
+const session_add = async (resource: number, voucher: number, token: string, resourceName: string, type: 'ssh' | 'rdp' = 'ssh') => {
   // 生成唯一的标签页名称，允许一个资源开多个终端
-  const key = `${resource}_${Date.now()}`
-  const instance = {
+  const key = `${type}_${resource}_${Date.now()}`
+  let shell: Shell | RdpShell
+  
+  if (type === 'ssh') {
+    shell = new Shell()
+  } else {
+    shell = new RdpShell()
+  }
+  
+  const instance: terminalTab = {
     name: key,
+    type: type,
     resourceName: resourceName,
     resourceId: resource,
     voucherId: voucher,
     token: token,
-    shell: new Shell(),
+    shell: shell,
     ele: null
   }
+  
   tabs.value.push(instance)
   activeTab.value = instance.name
   await nextTick()
@@ -89,19 +118,37 @@ const tab_change = async (name: string) => {
   activeTab.value = tab.name
 }
 
-const reconnectTab = async (tab: any) => {
+const reconnectTab = async (tab: terminalTab) => {
   // 关闭当前连接
   tab.shell.close()
   // 清空终端内容
   if (tab.ele) {
     tab.ele.innerHTML = ''
     // 创建新的终端实例
-    tab.shell = new Shell()
+    if (tab.type === 'ssh') {
+      tab.shell = new Shell()
+    } else {
+      tab.shell = new RdpShell()
+    }
     // 重新挂载终端元素
     tab.shell.mount(tab.ele)
   }
   // 重新连接
   await tab.shell.connect(tab.resourceId, tab.voucherId, tab.token)
+}
+
+const getRdpStatus = (tab: terminalTab) => {
+  if (tab.type === 'rdp' && 'getStatus' in tab.shell) {
+    return tab.shell.getStatus()
+  }
+  return 'connected'
+}
+
+const getRdpErrorMessage = (tab: terminalTab) => {
+  if (tab.type === 'rdp' && 'getErrorMessage' in tab.shell) {
+    return tab.shell.getErrorMessage()
+  }
+  return ''
 }
 
 defineExpose({

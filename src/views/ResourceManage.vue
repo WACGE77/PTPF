@@ -40,8 +40,8 @@
                 </el-icon>
                 <span class="node-label">{{ node.label }}</span>
                 <el-tag v-if="data.type === 'group'" size="small" type="info">组</el-tag>
-                <el-tag v-if="data.type === 'resource'" :type="data.status ? 'success' : 'danger'" size="small">
-                  {{ data.status ? '在线' : '离线' }}
+                <el-tag v-if="data.type === 'resource'" :type="data.data.status ? 'success' : 'danger'" size="small">
+                  {{ data.data.status ? '在线' : '离线' }}
                 </el-tag>
               </div>
               <div class="node-actions" @click.stop>

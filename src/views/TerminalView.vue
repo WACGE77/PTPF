@@ -42,8 +42,13 @@
                   </el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <el-dropdown-item v-for="voucher in data.data.vouchers" :key="voucher.id" @click="handleConnectResourceWithVoucher(data, voucher)">
-                        连接 ({{ voucher.name }})
+                      <!-- 协议 1 对应 SSH -->
+                      <el-dropdown-item v-if="data.data.protocols.includes(1)" v-for="voucher in data.data.vouchers" :key="voucher.id" @click="handleConnectResourceWithVoucher(data, voucher, 'ssh')">
+                        SSH 连接 ({{ voucher.name }})
+                      </el-dropdown-item>
+                      <!-- 协议 2 对应 RDP -->
+                      <el-dropdown-item v-if="data.data.protocols.includes(2)" v-for="voucher in data.data.vouchers" :key="voucher.id" @click="handleConnectResourceWithVoucher(data, voucher, 'rdp')">
+                        RDP 连接 ({{ voucher.name }})
                       </el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
@@ -147,16 +152,26 @@ const handleConnectResource = async (data: any) => {
     ElMessage.warning('凭证信息不存在，无法连接')
     return
   }
-  // 这里应该从用户信息中获取token，暂时使用示例token
-  const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzg2NzExMjA3LCJpYXQiOjE3Njk0MzEyMDcsImp0aSI6ImI5ZDc1ODdmM2EyZDRkYzdiYzI3OGVhNmM0OGRlM2I3IiwidXNlcl9pZCI6IjEifQ.ST8ZdChpXpyXX1WUfIr0OJhSxAbI-rE32suJoa4ngwE"
-  await sshTabsRef.value.session_add(resource.id, voucher.id, token, resource.name)
+  // 从本地存储获取token
+  const token = localStorage.getItem('token')
+  if (!token) {
+    ElMessage.error('请先登录')
+    return
+  }
+  // 根据资源协议选择连接类型
+  const connectionType = resource.protocols.includes(1) ? 'ssh' : resource.protocols.includes(2) ? 'rdp' : 'ssh'
+  await sshTabsRef.value.session_add(resource.id, voucher.id, token, resource.name, connectionType)
 }
 
-const handleConnectResourceWithVoucher = async (data: any, voucher: Voucher) => {
+const handleConnectResourceWithVoucher = async (data: any, voucher: Voucher, type: 'ssh' | 'rdp' = 'ssh') => {
   const resource = data.data as Resource
-  // 这里应该从用户信息中获取token，暂时使用示例token
-  const token = "eyJ0eXAiOiJKV1QiLCJhbGciOiJIUzI1NiJ9.eyJ0b2tlbl90eXBlIjoiYWNjZXNzIiwiZXhwIjoxNzg2NzExMjA3LCJpYXQiOjE3Njk0MzEyMDcsImp0aSI6ImI5ZDc1ODdmM2EyZDRkYzdiYzI3OGVhNmM0OGRlM2I3IiwidXNlcl9pZCI6IjEifQ.ST8ZdChpXpyXX1WUfIr0OJhSxAbI-rE32suJoa4ngwE"
-  await sshTabsRef.value.session_add(resource.id, voucher.id, token, resource.name)
+  // 从本地存储获取token
+  const token = localStorage.getItem('token')
+  if (!token) {
+    ElMessage.error('请先登录')
+    return
+  }
+  await sshTabsRef.value.session_add(resource.id, voucher.id, token, resource.name, type)
 }
 
 const handleSearch = () => {

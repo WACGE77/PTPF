@@ -138,7 +138,7 @@ const submit = async () => {
       ElMessage.success('修改成功')
       emit('success')
     } else {
-      data.protocol = 1
+      data.protocol_ids = [1]
       await store.addResource(data)
       ElMessage.success('添加成功')
       emit('success')

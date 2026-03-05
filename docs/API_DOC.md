@@ -1129,7 +1129,7 @@ Authorization: <access_token>
 | name | 是 | 字符串 | 资源名称 |
 | ipv4_address | 是 | 字符串 | IPv4地址 |
 | group | 是 | 整数 | 资源组ID |
-| protocol | 是 | 整数 | 协议ID |
+| protocol_ids | 否 | 数组 | 协议ID列表 |
 | port | 否 | 整数 | 端口 |
 | description | 否 | 字符串 | 描述 |
 
@@ -1139,7 +1139,7 @@ Authorization: <access_token>
     "name": "ptp",
     "ipv4_address": "106.13.85.137",
     "group": 1,
-    "protocol": 1
+    "protocol_ids": [1, 2]
 }
 ```
 
@@ -1313,7 +1313,7 @@ Authorization: <access_token>
             "create_date": "2026-02-05T13:55:38.477859+08:00",
             "update_date": "2026-02-05T14:03:48.490958+08:00",
             "group": 1,
-            "protocol": 1
+            "protocols": [1, 2]
         }
     ],
     "extra": [
@@ -1731,7 +1731,7 @@ Authorization: <access_token>
 }
 ```
 
-## 九、WebSocket SSH连接 (terminal)
+## 九、WebSocket 终端连接 (terminal)
 
 ### 35. SSH连接
 - **WebSocket**: `ws://设备/api/terminal/ssh/`
@@ -1767,9 +1767,53 @@ ws://设备/api/terminal/ssh/?token=<access_token>&resource_id=1&voucher_id=1
 #### 关闭连接
 - 发送空消息或关闭WebSocket
 
+### 36. RDP连接
+- **WebSocket**: `ws://设备/api/terminal/rdp/`
+
+#### 连接参数 (Query String)
+```
+ws://设备/api/terminal/rdp/?token=<access_token>&resource_id=1&voucher_id=1&resolution=1024x768&color_depth=16&enable_clipboard=true
+```
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| token | 是 | 字符串 | JWT访问令牌 |
+| resource_id | 是 | 整数 | 资源ID |
+| voucher_id | 是 | 整数 | 凭证ID |
+| resolution | 否 | 字符串 | 分辨率，默认1024x768 |
+| color_depth | 否 | 整数 | 颜色深度，默认16 |
+| enable_clipboard | 否 | 布尔值 | 是否启用剪贴板，默认true |
+
+#### 消息格式 (客户端 → 服务器)
+```json
+{
+    "type": 1,
+    "data": {
+        "cols": 1024,
+        "rows": 768
+    }
+}
+```
+- Type 1: 调整窗口大小
+
+```json
+{
+    "type": 2,
+    "data": "<Guacamole协议数据>"
+}
+```
+- Type 2: 发送RDP数据
+
+#### 消息格式 (服务器 → 客户端)
+- 直接发送Guacamole协议数据
+
+#### 关闭连接
+- 发送空消息或关闭WebSocket
+
 ## 十、动态路由 API (rbac)
 
-### 36. 获取动态路由
+### 37. 获取动态路由
 - **请求方法**: GET
 - **URL**: `https://设备/api/rbac/routes/`
 - **请求头**: `Authorization: <access_token>`
