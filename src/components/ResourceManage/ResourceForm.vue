@@ -18,6 +18,12 @@
       <el-form-item label="端口" prop="port">
         <el-input-number v-model="formData.port" :min="1" :max="65535" />
       </el-form-item>
+      <el-form-item label="协议" prop="protocol">
+        <el-select v-model="formData.protocol" placeholder="请选择协议" style="width: 100%">
+          <el-option label="SSH" :value="1" />
+          <el-option label="RDP" :value="2" />
+        </el-select>
+      </el-form-item>
       <el-form-item label="描述" prop="description">
         <el-input v-model="formData.description" type="textarea" placeholder="请输入描述" />
       </el-form-item>
@@ -51,7 +57,8 @@ const formData = ref({
   ipv6_address: '',
   port: 22,
   description: '',
-  group: 0
+  group: 0,
+  protocol: 1
 })
 
 const validateIp = (_rule: unknown, value: string, callback: (error?: Error) => void) => {
@@ -97,7 +104,8 @@ const init = async () => {
       ipv6_address: props.resource.ipv6_address || '',
       port: props.resource.port,
       description: props.resource.description || '',
-      group: props.resource.group
+      group: props.resource.group,
+      protocol: props.resource.protocols?.[0] || 1
     }
   } else {
     formData.value = {
@@ -107,7 +115,8 @@ const init = async () => {
       ipv6_address: '',
       port: 22,
       description: '',
-      group: props.groupId || 0
+      group: props.groupId || 0,
+      protocol: 1
     }
   }
   await nextTick()
@@ -138,7 +147,7 @@ const submit = async () => {
       ElMessage.success('修改成功')
       emit('success')
     } else {
-      data.protocol_ids = [1]
+      data.protocol_ids = [formData.value.protocol]
       await store.addResource(data)
       ElMessage.success('添加成功')
       emit('success')

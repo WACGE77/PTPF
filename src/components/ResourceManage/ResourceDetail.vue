@@ -53,6 +53,15 @@
             </el-tag>
           </div>
           <div class="detail-item">
+            <span class="label">协议：</span>
+            <span class="value">
+              <el-tag v-if="(node.data as Resource).protocols?.[0]" size="small" class="protocol-tag">
+                {{ (node.data as Resource).protocols[0] === 1 ? 'SSH' : (node.data as Resource).protocols[0] === 2 ? 'RDP' : 'Unknown' }}
+              </el-tag>
+              <span v-else>-</span>
+            </span>
+          </div>
+          <div class="detail-item">
             <span class="label">描述：</span>
             <span class="value">{{ (node.data as Resource).description || '-' }}</span>
           </div>
@@ -165,7 +174,8 @@ $border-color: #e6e6e6;
         flex: 1;
         word-break: break-all;
 
-        .voucher-tag {
+        .voucher-tag,
+        .protocol-tag {
           margin-right: 6px;
           margin-bottom: 4px;
         }
