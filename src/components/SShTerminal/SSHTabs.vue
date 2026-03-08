@@ -68,7 +68,7 @@ import Shell from '@/utils/terminal.ts'
 import RdpShell from '@/utils/rdpTerminal.ts'
 import BlankPage from '@/components/SShTerminal/BlankPage.vue'
 
-const tabs = ref<Array<terminalTab>>([])
+const tabs = ref<any[]>([])
 const activeTab = ref<string>()
 
 const find_ele = (key: string) => {
@@ -78,7 +78,7 @@ const find_ele = (key: string) => {
 const session_add = async (resource: number, voucher: number, token: string, resourceName: string, type: 'ssh' | 'rdp' = 'ssh') => {
   // 生成唯一的标签页名称，允许一个资源开多个终端
   const key = `${type}_${resource}_${Date.now()}`
-  let shell: Shell | RdpShell
+  let shell: any
   
   if (type === 'ssh') {
     shell = new Shell()
@@ -86,7 +86,7 @@ const session_add = async (resource: number, voucher: number, token: string, res
     shell = new RdpShell()
   }
   
-  const instance: terminalTab = {
+  const instance = {
     name: key,
     type: type,
     resourceName: resourceName,

@@ -1786,6 +1786,8 @@ ws://设备/api/terminal/rdp/?token=<access_token>&resource_id=1&voucher_id=1&re
 | enable_clipboard | 否 | 布尔值 | 是否启用剪贴板，默认true |
 
 #### 消息格式 (客户端 → 服务器)
+
+##### 调整窗口大小
 ```json
 {
     "type": 1,
@@ -1795,21 +1797,63 @@ ws://设备/api/terminal/rdp/?token=<access_token>&resource_id=1&voucher_id=1&re
     }
 }
 ```
-- Type 1: 调整窗口大小
 
+##### 发送鼠标事件
+```json
+{
+    "type": 2,
+    "data": {
+        "event": "mouse",
+        "x": 100,
+        "y": 100,
+        "button": "left",
+        "action": "down"
+    }
+}
+```
+
+##### 发送键盘事件
+```json
+{
+    "type": 2,
+    "data": {
+        "event": "keyboard",
+        "key": "Ctrl",
+        "action": "down"
+    }
+}
+```
+
+##### 发送Guacamole协议数据
 ```json
 {
     "type": 2,
     "data": "<Guacamole协议数据>"
 }
 ```
-- Type 2: 发送RDP数据
 
 #### 消息格式 (服务器 → 客户端)
 - 直接发送Guacamole协议数据
+- 连接成功时会发送: `RDP connection established successfully`
+- 窗口大小调整成功时会发送: `[模拟RDP] 窗口大小已调整为: {cols}x{rows}`
 
 #### 关闭连接
 - 发送空消息或关闭WebSocket
+
+#### 功能说明
+- **远程桌面访问**: 通过浏览器访问Windows桌面
+- **实时画面显示**: 实时显示Windows桌面画面
+- **鼠标键盘操作**: 支持鼠标移动、点击和键盘输入
+- **窗口大小调整**: 支持动态调整远程桌面窗口大小
+- **剪贴板支持**: 支持剪贴板功能
+- **多用户会话**: 支持多用户同时访问不同的远程桌面会话
+- **会话管理**: 自动管理会话生命周期，记录会话日志
+
+#### 技术架构
+- **协议转换**: 使用Guacamole作为协议网关，将RDP协议转换为WebSocket
+- **后端服务**: 管理用户会话，处理WebSocket通信
+- **前端渲染**: 使用guacamole-js在浏览器中渲染远程桌面
+- **容错处理**: 当Guacamole服务不可用时，自动切换到模拟模式
 
 ## 十、动态路由 API (rbac)
 
