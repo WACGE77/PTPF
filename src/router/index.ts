@@ -14,8 +14,6 @@ const router = createRouter({
       children: [
         // 基础静态路由
         { path: '/overview', component: () => import('@/views/IndexPage.vue') },
-        // RDP测试页面
-        { path: '/rdp-test', component: () => import('@/views/RdpTestView.vue') },
       ],
     },
   ],
