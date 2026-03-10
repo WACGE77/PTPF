@@ -1,130 +1,236 @@
-# RDP 功能集成 Skill
+技能描述
 
-## 功能描述
+该技能用于设计 基于浏览器访问 Windows 桌面的远程控制系统架构。
+系统通过远程桌面协议连接 Windows 主机，并通过 Web 技术在浏览器中实时显示桌面画面，同时支持鼠标、键盘等交互操作。
 
-在现有运维堡垒机系统中集成 Windows 远程桌面（RDP）功能，基于 Apache Guacamole 实现 RDP 协议解析与 Web 化远程桌面访问。
+系统不直接实现 RDP 协议，而是通过现有的协议网关进行转换，实现 RDP → WebSocket → 浏览器渲染。
 
-## 技术栈
+技能能力
 
-- **前端**：Vue 3 + TypeScript + Element Plus
-- **后端**：Python/Django
-- **核心技术**：Apache Guacamole
-- **网关**：Traefik
+该技能可以帮助 AI 智能体：
 
-## 实现步骤
+设计浏览器远程桌面架构
 
-### 1. 后端实现
+选择远程桌面技术栈
 
-#### 1.1 模块扩展
-- 在现有 `resource` 资源模块下新增 `rdp` 子模块，遵循原有目录结构规范
+设计 RDP 协议转换网关
 
-#### 1.2 数据模型
-- 设计 RDP 配置模型，关联服务器资源、凭证表
-- 包含字段：`rdp_port`、`resolution`、`color_depth`、`enable_clipboard`
+设计 WebSocket 通信架构
 
-#### 1.3 接口开发
-- 封装 Guacamole API
-- 开发 `/resource/rdp/connection/` 接口
-- 返回 JWT 令牌、WebSocket 地址、RDP 配置
-- 加入 RBAC 权限校验
+设计浏览器端桌面渲染方案
 
-#### 1.4 审计扩展
-- 新增 RDP 审计日志模型
-- 记录 `resource_id`、`session_id`、`connect_time`、`disconnect_time`、`operation_type`、`error_msg`
-- 连接/断开/异常时自动落库
+设计用户输入事件转发机制
 
-#### 1.5 服务部署
-- 部署 Guacamole Server
-- 配置 guacd 服务
-- 保证与后端网络互通，处理 RDP 协议代理
+设计远程桌面会话管理机制
 
-#### 1.6 路由配置
-- 新增 RDP 路由挂载至 `/resource/rdp` 路径
-- 适配 Traefik 路由匹配规则
+核心技术栈
+1 远程桌面协议层
 
-### 2. 前端实现
+使用 Windows 的远程桌面协议：
 
-#### 2.1 目录扩展
-- 在 `api`、`components`、`struct`、`utils`、`views` 目录新增 RDP 相关文件，遵循原有命名规范
+Remote Desktop Protocol
 
-#### 2.2 核心组件
-- 基于 guacamole-common-js 开发 `RdpTerminal` 组件
-- 实现 WebSocket 连接、RDP 桌面渲染、键鼠交互
+该协议用于与 Windows 系统建立远程桌面连接。
 
-#### 2.3 状态管理
-- 封装 RDP 连接状态（disconnected/connecting/connected/error）
-- 展示异常提示
+系统不直接实现 RDP 协议，而是使用成熟的 RDP 客户端库。
 
-#### 2.4 配置组件
-- 开发 `RdpConfig` 组件，支持 RDP 参数展示与修改
-- 同步至后端配置
+推荐组件：
 
-#### 2.5 类型定义
-- 新增 RDP 相关 TS 类型：
-  - `RDPResource`
-  - `RDPConnectionParams`
-  - `RDPStatus`
+FreeRDP
 
-#### 2.6 API 封装
-- 开发 `getRDPConnectionParams`、`recordRDPAuditLog` 接口
-- 携带原有认证 token
+作用：
 
-#### 2.7 路由配置
-- 新增 `/rdp/:resourceId` 路由
-- 加入登录/权限守卫
-- 适配 Traefik 路径转发
+连接 Windows 主机
 
-#### 2.8 工具函数
-- 封装 Guacamole 初始化、断开、窗口自适应、断网重连逻辑
+获取桌面画面
 
-### 3. Traefik 网关配置
+发送键盘和鼠标事件
 
-#### 3.1 路由规则
-- 配置 `/guacamole/websocket` 路径转发至 Guacamole 服务
-- 启用 WebSocket 支持
+2 协议网关层
 
-#### 3.2 API 转发
-- 配置 `/resource/rdp` 路径转发至堡垒机后端服务
+使用远程桌面协议代理：
 
-#### 3.3 适配要求
-- 沿用现有认证中间件
-- 保证请求路由无异常
-- 与现有网关配置兼容
+guacd
 
-### 4. 集成联调
+主要作用：
 
-#### 4.1 权限联动
-- 实现“用户-角色-权限-RDP 资源”的权限管控
-- 未授权用户无法访问
+连接 Windows RDP 服务
 
-#### 4.2 日志统一
-- RDP 审计日志在原有审计页面展示
-- 与现有日志体系统一
+接收远程桌面 Framebuffer
 
-#### 4.3 异常处理
-- 覆盖权限不足、资源不可达、断网、令牌过期等场景
-- 给出友好提示
+将桌面更新转换为 Guacamole 协议指令
 
-#### 4.4 兼容性
-- 支持 Chrome/Firefox/Edge 浏览器
-- 适配不同屏幕尺寸
+将用户输入转换为 RDP 输入事件
 
-## 注意事项
+3 后端网关服务
 
-1. 确保 Guacamole Server 与后端服务网络互通
-2. 确保 Traefik 正确配置 WebSocket 转发
-3. 确保 RDP 相关 API 加入 RBAC 权限校验
-4. 确保 RDP 审计日志与现有日志系统集成
-5. 确保异常处理覆盖所有可能的场景
-6. 确保前端组件适配不同屏幕尺寸
+后端负责管理远程桌面连接，并通过 WebSocket 与浏览器通信。
 
-## 测试要点
+主要职责：
 
-1. RDP 连接建立与断开
-2. 键鼠交互
-3. 剪贴板功能
-4. 权限控制
-5. 审计日志记录
-6. 异常场景处理
-7. 浏览器兼容性
-8. 屏幕尺寸适配
+管理用户远程会话
+
+创建远程桌面连接
+
+转发远程桌面协议数据
+
+处理输入事件
+
+管理连接生命周期
+
+推荐技术：
+
+后端语言：
+
+Python（异步框架）
+
+Go
+
+Java
+
+通信协议：
+
+WebSocket
+
+4 浏览器端渲染层
+
+浏览器需要解析远程桌面绘制指令，并渲染桌面画面。
+
+推荐使用：
+
+guacamole-js
+
+主要功能：
+
+解析 Guacamole 协议
+
+解码桌面图像
+
+管理远程桌面图层
+
+处理鼠标和键盘事件
+
+渲染远程桌面
+
+渲染技术：
+
+HTML5 Canvas
+
+系统整体架构
+浏览器
+   │
+   │ WebSocket
+   │
+后端网关服务
+   │
+   │ Guacamole 协议
+   │
+guacd
+   │
+   │ RDP
+   │
+Windows 主机
+数据流设计
+桌面画面传输流程
+Windows 桌面
+      │
+      │ RDP Framebuffer
+      │
+guacd
+      │
+      │ Guacamole 协议指令
+      │
+后端网关
+      │
+      │ WebSocket
+      │
+浏览器
+      │
+      │ guacamole-js
+      │
+Canvas 渲染
+
+浏览器最终会显示 Windows 桌面画面。
+
+用户操作流程
+
+用户操作鼠标和键盘时：
+
+用户输入
+      │
+浏览器
+      │
+guacamole-js
+      │
+WebSocket
+      │
+后端网关
+      │
+Guacamole 协议
+      │
+guacd
+      │
+RDP 输入事件
+      │
+Windows
+
+这样用户可以像本地操作一样控制远程桌面。
+
+系统核心模块
+会话管理模块
+
+负责：
+
+用户远程会话管理
+
+连接生命周期管理
+
+资源释放
+
+协议转发模块
+
+负责：
+
+转发 Guacamole 协议数据
+
+维护 WebSocket 连接
+
+处理桌面更新数据
+
+输入事件处理模块
+
+负责转发：
+
+鼠标移动
+
+鼠标点击
+
+键盘输入
+
+窗口大小调整
+
+剪贴板
+
+桌面渲染模块
+
+浏览器端负责：
+
+解析桌面更新指令
+
+管理桌面图层
+
+更新 Canvas 画面
+
+使用效果
+
+使用该架构后，系统可以实现：
+
+用户通过浏览器访问远程 Windows
+
+浏览器实时显示 Windows 桌面
+
+用户可以使用鼠标和键盘操作远程系统
+
+支持窗口大小动态调整
+
+支持多用户远程会话

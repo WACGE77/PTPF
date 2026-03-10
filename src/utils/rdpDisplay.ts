@@ -1,19 +1,27 @@
-import requests from '@/requests'
-import type { Ref } from 'vue'
-import type { Dom } from '@/struct/terminal'
 import Guacamole from 'guacamole-common-js'
+import requests from '@/requests'
 
 /**
- * RDP终端实现
- * 基于Guacamole协议实现Windows远程桌面访问
+ * RDP显示实现
+ * 用于处理后端返回的Guacamole绘图指令并在网页上显示RDP桌面
  */
-export class RdpShell {
-  private container: Dom = null
-  private client: Guacamole.Client | null = null
-  private tunnel: Guacamole.WebSocketTunnel | null = null
+export class RdpDisplay {
+  private container: HTMLElement
+  private client: Guacamole.Client
+  private tunnel: Guacamole.WebSocketTunnel
   private status: 'disconnected' | 'connecting' | 'connected' | 'error' = 'disconnected'
   private errorMessage: string = ''
-  private cleanup?: () => void
+  private cleanupFunctions: (() => void)[] = []
+
+  /**
+   * 构造函数
+   * @param container 显示容器元素
+   */
+  constructor(container: HTMLElement) {
+    this.container = container
+    this.client = null as any
+    this.tunnel = null as any
+  }
 
   /**
    * 连接到RDP服务器
@@ -22,7 +30,7 @@ export class RdpShell {
    * @param token 认证令牌
    * @param options 连接选项
    */
-  public async connect(resource: number, voucher: number, token: string, options?: {
+  public connect(resource: number, voucher: number, token: string, options?: {
     resolution?: string
     color_depth?: number
     enable_clipboard?: boolean
@@ -52,16 +60,6 @@ export class RdpShell {
    * @param wsUrl WebSocket URL
    */
   private initGuacamole(wsUrl: string) {
-    if (!this.container) {
-      console.error('容器未初始化')
-      this.status = 'error'
-      this.errorMessage = '容器未初始化'
-      return
-    }
-    
-    console.log('初始化Guacamole客户端...')
-    console.log('WebSocket URL:', wsUrl)
-    
     try {
       // 创建Guacamole WebSocket隧道
       this.tunnel = new Guacamole.WebSocketTunnel(wsUrl)
@@ -80,6 +78,7 @@ export class RdpShell {
       
       this.tunnel.onclose = () => {
         console.log('WebSocket隧道已关闭')
+        this.status = 'disconnected'
       }
       
       // 创建Guacamole客户端
@@ -97,13 +96,8 @@ export class RdpShell {
           case Guacamole.Client.State.CONNECTED:
             this.status = 'connected'
             console.log('已连接')
-            // 连接成功后再次调整大小
-            setTimeout(() => {
-              const width = this.container?.clientWidth || 1024
-              const height = this.container?.clientHeight || 768
-              console.log('连接成功后调整显示大小:', width, height)
-              this.resize(width, height)
-            }, 100)
+            // 连接成功后调整显示大小
+            this.resize(this.container.clientWidth, this.container.clientHeight)
             break
           case Guacamole.Client.State.DISCONNECTING:
             console.log('正在断开连接...')
@@ -125,9 +119,16 @@ export class RdpShell {
         this.errorMessage = error.message || '连接错误'
       }
       
-      // 监听指令处理
+      // 监听指令处理（这里可以看到后端返回的绘图指令）
       this.client.oninstruction = (instruction: string, args: string[]) => {
         console.log('收到Guacamole指令:', instruction, args)
+        // 指令类型包括：
+        // - "rect": 绘制矩形
+        // - "img": 绘制图像
+        // - "fill": 填充区域
+        // - "copy": 复制区域
+        // - "move": 移动光标
+        // - "sync": 同步操作
       }
       
       // 获取显示元素
@@ -158,72 +159,17 @@ export class RdpShell {
       this.container.style.overflow = 'hidden'
       this.container.style.width = '100%'
       this.container.style.height = '100%'
+      this.container.style.backgroundColor = '#000'
       
       // 处理键盘事件
-      console.log('设置键盘事件处理...')
-      const keyboard = this.client.getKeyboard()
-      console.log('创建键盘处理器:', keyboard)
-      
-      const handleKeydown = (e: KeyboardEvent) => {
-        console.log('键盘按下:', e.key)
-        keyboard.handleKeydown(e)
-      }
-      
-      const handleKeyup = (e: KeyboardEvent) => {
-        console.log('键盘释放:', e.key)
-        keyboard.handleKeyup(e)
-      }
-      
-      document.addEventListener('keydown', handleKeydown)
-      document.addEventListener('keyup', handleKeyup)
+      this.setupKeyboardEvents()
       
       // 处理鼠标事件
-      console.log('设置鼠标事件处理...')
-      const mouse = this.client.getMouse()
-      console.log('创建鼠标处理器:', mouse)
+      this.setupMouseEvents()
       
-      const handleMousedown = (e: MouseEvent) => {
-        console.log('鼠标按下:', e.button)
-        mouse.handleMouseDown(e)
-      }
+      // 处理窗口大小变化
+      this.setupResizeEvents()
       
-      const handleMousemove = (e: MouseEvent) => {
-        mouse.handleMouseMove(e)
-      }
-      
-      const handleMouseup = (e: MouseEvent) => {
-        console.log('鼠标释放:', e.button)
-        mouse.handleMouseUp(e)
-      }
-      
-      const handleWheel = (e: WheelEvent) => {
-        mouse.handleWheel(e)
-      }
-      
-      this.container.addEventListener('mousedown', handleMousedown)
-      this.container.addEventListener('mousemove', handleMousemove)
-      this.container.addEventListener('mouseup', handleMouseup)
-      this.container.addEventListener('wheel', handleWheel)
-      
-      // 调整显示大小
-      const width = this.container.clientWidth
-      const height = this.container.clientHeight
-      console.log('调整显示大小:', width, height)
-      this.resize(width, height)
-      
-      // 清理函数
-      this.cleanup = () => {
-        console.log('清理Guacamole客户端...')
-        document.removeEventListener('keydown', handleKeydown)
-        document.removeEventListener('keyup', handleKeyup)
-        if (this.container) {
-          this.container.removeEventListener('mousedown', handleMousedown)
-          this.container.removeEventListener('mousemove', handleMousemove)
-          this.container.removeEventListener('mouseup', handleMouseup)
-          this.container.removeEventListener('wheel', handleWheel)
-        }
-        this.close()
-      }
     } catch (error: any) {
       console.error('初始化Guacamole客户端失败:', error)
       this.status = 'error'
@@ -232,7 +178,86 @@ export class RdpShell {
   }
 
   /**
-   * 调整终端大小
+   * 设置键盘事件处理
+   */
+  private setupKeyboardEvents() {
+    if (!this.client) return
+    
+    const keyboard = this.client.getKeyboard()
+    console.log('创建键盘处理器:', keyboard)
+    
+    const handleKeydown = (e: KeyboardEvent) => {
+      keyboard.handleKeydown(e)
+    }
+    
+    const handleKeyup = (e: KeyboardEvent) => {
+      keyboard.handleKeyup(e)
+    }
+    
+    document.addEventListener('keydown', handleKeydown)
+    document.addEventListener('keyup', handleKeyup)
+    
+    this.cleanupFunctions.push(() => {
+      document.removeEventListener('keydown', handleKeydown)
+      document.removeEventListener('keyup', handleKeyup)
+    })
+  }
+
+  /**
+   * 设置鼠标事件处理
+   */
+  private setupMouseEvents() {
+    if (!this.client) return
+    
+    const mouse = this.client.getMouse()
+    console.log('创建鼠标处理器:', mouse)
+    
+    const handleMousedown = (e: MouseEvent) => {
+      mouse.handleMouseDown(e)
+    }
+    
+    const handleMousemove = (e: MouseEvent) => {
+      mouse.handleMouseMove(e)
+    }
+    
+    const handleMouseup = (e: MouseEvent) => {
+      mouse.handleMouseUp(e)
+    }
+    
+    const handleWheel = (e: WheelEvent) => {
+      mouse.handleWheel(e)
+    }
+    
+    this.container.addEventListener('mousedown', handleMousedown)
+    this.container.addEventListener('mousemove', handleMousemove)
+    this.container.addEventListener('mouseup', handleMouseup)
+    this.container.addEventListener('wheel', handleWheel)
+    
+    this.cleanupFunctions.push(() => {
+      this.container.removeEventListener('mousedown', handleMousedown)
+      this.container.removeEventListener('mousemove', handleMousemove)
+      this.container.removeEventListener('mouseup', handleMouseup)
+      this.container.removeEventListener('wheel', handleWheel)
+    })
+  }
+
+  /**
+   * 设置窗口大小变化处理
+   */
+  private setupResizeEvents() {
+    const resizeHandler = () => {
+      this.resize(this.container.clientWidth, this.container.clientHeight)
+    }
+    
+    window.addEventListener('resize', resizeHandler)
+    
+    this.cleanupFunctions.push(() => {
+      window.removeEventListener('resize', resizeHandler)
+    })
+  }
+
+  /**
+   * 调整显示大小
    * @param width 宽度
    * @param height 高度
    */
@@ -253,53 +278,45 @@ export class RdpShell {
   }
 
   /**
-   * 挂载终端到容器
-   * @param containerEl 容器元素
-   */
-  public mount(containerEl: HTMLElement) {
-    this.container = containerEl
-    
-    const resizeHandler = () => {
-      if (this.container) {
-        this.resize(this.container.clientWidth, this.container.clientHeight)
-      }
-    }
-
-    window.addEventListener('resize', resizeHandler)
-
-    // 清理函数会在initGuacamole中被覆盖
-    this.cleanup = () => {
-      window.removeEventListener('resize', resizeHandler)
-      this.close()
-    }
-  }
-
-  /**
-   * 关闭终端连接
+   * 关闭连接
    */
   public close() {
+    // 执行所有清理函数
+    this.cleanupFunctions.forEach(fn => {
+      try {
+        fn()
+      } catch (error) {
+        console.error('清理函数执行失败:', error)
+      }
+    })
+    this.cleanupFunctions = []
+    
+    // 关闭客户端
     if (this.client) {
       try {
         this.client.disconnect()
       } catch (error) {
         console.error('断开客户端连接失败:', error)
       }
-      this.client = null
+      this.client = null as any
     }
+    
+    // 关闭隧道
     if (this.tunnel) {
       try {
         this.tunnel.disconnect()
       } catch (error) {
         console.error('断开隧道连接失败:', error)
       }
-      this.tunnel = null
+      this.tunnel = null as any
     }
+    
     this.status = 'disconnected'
   }
 
   /**
-   * 获取终端状态
-   * @returns 终端状态
+   * 获取连接状态
+   * @returns 连接状态
    */
   public getStatus() {
     return this.status
@@ -314,4 +331,11 @@ export class RdpShell {
   }
 }
 
-export default RdpShell
+/**
+ * 创建RDP显示实例
+ * @param container 显示容器元素
+ * @returns RDP显示实例
+ */
+export const createRdpDisplay = (container: HTMLElement) => {
+  return new RdpDisplay(container)
+}
