@@ -47,16 +47,10 @@
             <span class="value">{{ (node.data as Resource).port }}</span>
           </div>
           <div class="detail-item">
-            <span class="label">状态：</span>
-            <el-tag :type="(node.data as Resource).status ? 'success' : 'danger'">
-              {{ (node.data as Resource).status ? '在线' : '离线' }}
-            </el-tag>
-          </div>
-          <div class="detail-item">
             <span class="label">协议：</span>
             <span class="value">
-              <el-tag v-if="(node.data as Resource).protocols?.[0]" size="small" class="protocol-tag">
-                {{ (node.data as Resource).protocols[0] === 1 ? 'SSH' : (node.data as Resource).protocols[0] === 2 ? 'RDP' : 'Unknown' }}
+              <el-tag v-if="(node.data as Resource).protocol" size="small" class="protocol-tag">
+                {{ (node.data as Resource).protocol.name }}
               </el-tag>
               <span v-else>-</span>
             </span>

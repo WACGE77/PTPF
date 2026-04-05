@@ -1127,19 +1127,22 @@ Authorization: <access_token>
 | 字段 | 是否必须 | 数据类型 | 备注 |
 |------|---------|---------|------|
 | name | 是 | 字符串 | 资源名称 |
-| ipv4_address | 是 | 字符串 | IPv4地址 |
+| ipv4_address | 否* | 字符串 | IPv4地址（与ipv6_address二选一） |
+| ipv6_address | 否* | 字符串 | IPv6地址（与ipv4_address二选一） |
 | group | 是 | 整数 | 资源组ID |
-| protocol_ids | 否 | 数组 | 协议ID列表 |
+| protocol_id | 否 | 整数 | 协议ID（1=SSH, 2=RDP），默认为1 |
 | port | 否 | 整数 | 端口 |
 | description | 否 | 字符串 | 描述 |
 
 #### 请求示例
 ```json
 {
-    "name": "ptp",
-    "ipv4_address": "106.13.85.137",
+    "name": "windows-server",
+    "ipv4_address": "192.168.1.100",
     "group": 1,
-    "protocol_ids": [1, 2]
+    "protocol_id": 2,
+    "port": 3389,
+    "description": "Windows服务器"
 }
 ```
 
@@ -1148,13 +1151,28 @@ Authorization: <access_token>
 |------|------|
 | code | 状态码 |
 | msg | 消息 |
+| data | 创建的资源信息 |
 
 #### 返回示例
 - **成功时返回**
 ```json
 {
     "code": 200,
-    "msg": "OK"
+    "msg": "OK",
+    "data": {
+        "id": 1,
+        "name": "windows-server",
+        "ipv4_address": "192.168.1.100",
+        "port": 3389,
+        "protocol": {
+            "id": 2,
+            "name": "RDP",
+            "code": "RDP"
+        },
+        "group": 1,
+        "create_date": "2026-03-15T22:00:00+08:00",
+        "update_date": "2026-03-15T22:00:00+08:00"
+    }
 }
 ```
 
@@ -1164,7 +1182,7 @@ Authorization: <access_token>
     "code": 400,
     "msg": "参数错误",
     "detail": {
-        "voucher": ["不同系统组,禁止使用"]
+        "name": ["名称已被占用"]
     }
 }
 ```
@@ -1183,12 +1201,14 @@ Authorization: <access_token>
 | name | 否 | 字符串 | 资源名称 |
 | ipv4_address | 否 | 字符串 | IPv4地址 |
 | port | 否 | 整数 | 端口 |
+| protocol_id | 否 | 整数 | 协议ID（1=SSH, 2=RDP） |
 
 #### 请求示例
 ```json
 {
-    "id": 3,
-    "description": "改了啊,不是摸鱼了"
+    "id": 1,
+    "protocol_id": 2,
+    "description": "修改为RDP协议"
 }
 ```
 
@@ -1303,17 +1323,21 @@ Authorization: <access_token>
                     "group": 1
                 }
             ],
-            "name": "ptp",
+            "name": "windows-server",
             "status": true,
-            "ipv4_address": "106.13.85.137",
+            "ipv4_address": "192.168.1.100",
             "ipv6_address": null,
             "domain": null,
-            "port": 22,
-            "description": null,
-            "create_date": "2026-02-05T13:55:38.477859+08:00",
-            "update_date": "2026-02-05T14:03:48.490958+08:00",
+            "port": 3389,
+            "description": "Windows服务器",
+            "create_date": "2026-03-15T22:00:00+08:00",
+            "update_date": "2026-03-15T22:00:00+08:00",
             "group": 1,
-            "protocols": [1, 2]
+            "protocol": {
+                "id": 2,
+                "name": "RDP",
+                "code": "RDP"
+            }
         }
     ],
     "extra": [
@@ -1738,8 +1762,19 @@ Authorization: <access_token>
 
 #### 连接参数 (Query String)
 ```
-ws://设备/api/terminal/ssh/?token=<access_token>&resource_id=1&voucher_id=1
+ws://设备/api/terminal/ssh/?token=<access_token>&resource=1&voucher=1
 ```
+
+#### 参数说明
+| 字段 | 是否必须 | 数据类型 | 备注 |
+|------|---------|---------|------|
+| token | 是 | 字符串 | JWT访问令牌 |
+| resource | 是 | 整数 | 资源ID |
+| voucher | 是 | 整数 | 凭证ID |
+
+#### 注意
+- 资源的 `protocol_id` 必须为 1 (SSH) 才能使用 SSH 连接
+- 如果资源协议不是 SSH，将返回错误：`该资源不支持SSH协议`
 
 #### 消息格式 (客户端 → 服务器)
 ```json
@@ -1772,22 +1807,24 @@ ws://设备/api/terminal/ssh/?token=<access_token>&resource_id=1&voucher_id=1
 
 #### 连接参数 (Query String)
 ```
-ws://设备/api/terminal/rdp/?token=<access_token>&resource_id=1&voucher_id=1&resolution=1024x768&color_depth=16&enable_clipboard=true
+ws://设备/api/terminal/rdp/?token=<access_token>&resource=1&voucher=1&resolution=1920x1080&color_depth=24
 ```
 
 #### 参数说明
 | 字段 | 是否必须 | 数据类型 | 备注 |
 |------|---------|---------|------|
 | token | 是 | 字符串 | JWT访问令牌 |
-| resource_id | 是 | 整数 | 资源ID |
-| voucher_id | 是 | 整数 | 凭证ID |
+| resource | 是 | 整数 | 资源ID |
+| voucher | 是 | 整数 | 凭证ID |
 | resolution | 否 | 字符串 | 分辨率，默认1024x768 |
-| color_depth | 否 | 整数 | 颜色深度，默认16 |
+| color_depth | 否 | 整数 | 颜色深度(16/24/32)，默认16 |
 | enable_clipboard | 否 | 布尔值 | 是否启用剪贴板，默认true |
 
-#### 消息格式 (客户端 → 服务器)
+#### 注意
+- 资源的 `protocol_id` 必须为 2 (RDP) 才能使用 RDP 连接
+- 如果资源协议不是 RDP，将返回错误：`该资源不支持RDP协议`
 
-##### 调整窗口大小
+#### 消息格式 (客户端 → 服务器)
 ```json
 {
     "type": 1,
@@ -1797,63 +1834,21 @@ ws://设备/api/terminal/rdp/?token=<access_token>&resource_id=1&voucher_id=1&re
     }
 }
 ```
+- Type 1: 调整窗口大小
 
-##### 发送鼠标事件
-```json
-{
-    "type": 2,
-    "data": {
-        "event": "mouse",
-        "x": 100,
-        "y": 100,
-        "button": "left",
-        "action": "down"
-    }
-}
-```
-
-##### 发送键盘事件
-```json
-{
-    "type": 2,
-    "data": {
-        "event": "keyboard",
-        "key": "Ctrl",
-        "action": "down"
-    }
-}
-```
-
-##### 发送Guacamole协议数据
 ```json
 {
     "type": 2,
     "data": "<Guacamole协议数据>"
 }
 ```
+- Type 2: 发送RDP数据
 
 #### 消息格式 (服务器 → 客户端)
 - 直接发送Guacamole协议数据
-- 连接成功时会发送: `RDP connection established successfully`
-- 窗口大小调整成功时会发送: `[模拟RDP] 窗口大小已调整为: {cols}x{rows}`
 
 #### 关闭连接
 - 发送空消息或关闭WebSocket
-
-#### 功能说明
-- **远程桌面访问**: 通过浏览器访问Windows桌面
-- **实时画面显示**: 实时显示Windows桌面画面
-- **鼠标键盘操作**: 支持鼠标移动、点击和键盘输入
-- **窗口大小调整**: 支持动态调整远程桌面窗口大小
-- **剪贴板支持**: 支持剪贴板功能
-- **多用户会话**: 支持多用户同时访问不同的远程桌面会话
-- **会话管理**: 自动管理会话生命周期，记录会话日志
-
-#### 技术架构
-- **协议转换**: 使用Guacamole作为协议网关，将RDP协议转换为WebSocket
-- **后端服务**: 管理用户会话，处理WebSocket通信
-- **前端渲染**: 使用guacamole-js在浏览器中渲染远程桌面
-- **容错处理**: 当Guacamole服务不可用时，自动切换到模拟模式
 
 ## 十、动态路由 API (rbac)
 

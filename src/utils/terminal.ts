@@ -11,11 +11,14 @@ export class Shell {
   private readonly fitAddon: FitAddon
   private websocket: WebSocket | null = null
   private container: Ref | null = null
-  private status: boolean = false
+  private status: 'disconnected' | 'connecting' | 'connected' | 'error' = 'disconnected'
   private lock: boolean = false
   private OnData: IDisposable | null = null
   private OnResize: IDisposable | null = null
   public cleanup?: () => void
+  public onStatusChange?: () => void
+  private errorMessage: string = ''
+  
   constructor() {
     this.term = new Terminal({
       fontSize: 14,
@@ -28,45 +31,70 @@ export class Shell {
     this.fitAddon = new FitAddon()
     this.term.loadAddon(this.fitAddon)
   }
-  public async connect(resource:number,voucher:number,token:string) {
-    if (!this.status && !this.lock) {
-      this.lock = true
-      const params = new URLSearchParams()
-      params.append('token',token)
-      params.append('resource',String(resource))
-      params.append('voucher',String(voucher))
-      this.websocket = new WebSocket(requests.getWsBaseUrl() + `/terminal/ssh/?${params.toString()}`)
-      this.websocket.onopen = () => {
-        this.status = true
-        this.fitAddon.fit()
-        this.resize()
-        this.term.write('正在连接服务器...\r\n')
-        this.lock = false
-      }
-      this.websocket.onmessage = (event: MessageEvent) => {
-        this.term.write(event.data)
-      }
-      this.websocket.onclose = () => {
-        this.OnData?.dispose()
-        this.status = false
-        this.lock = false
-      }
-      this.OnData = this.term.onData((data) => {
-        if (this.status) {
-          const tmp = { type: 2, data: data }
-          this.websocket?.send(JSON.stringify(tmp))
-        }
-      })
-      this.OnResize = this.term.onResize(() => {
-        if (this.status) {
-          this.resize()
-        }
-      })
+  
+  private updateStatus(newStatus: 'disconnected' | 'connecting' | 'connected' | 'error', errorMsg: string = '') {
+    this.status = newStatus
+    this.errorMessage = errorMsg
+    if (this.onStatusChange) {
+      this.onStatusChange()
     }
+  }
+  
+  public getStatus() {
+    return this.status
+  }
+  
+  public getErrorMessage() {
+    return this.errorMessage
+  }
+  
+  public async connect(resource:number,voucher:number,token:string) {
+    if (this.status !== 'disconnected' && this.status !== 'error' && !this.lock) {
+      return
+    }
+    this.lock = true
+    this.updateStatus('connecting')
+    
+    const params = new URLSearchParams()
+    params.append('token',token)
+    params.append('resource',String(resource))
+    params.append('voucher',String(voucher))
+    this.websocket = new WebSocket(requests.getWsBaseUrl() + `/terminal/ssh/?${params.toString()}`)
+    this.websocket.onopen = () => {
+      this.updateStatus('connected')
+      this.fitAddon.fit()
+      this.resize()
+      this.term.write('正在连接服务器...\r\n')
+      this.lock = false
+    }
+    this.websocket.onmessage = (event: MessageEvent) => {
+      this.term.write(event.data)
+    }
+    this.websocket.onerror = (error) => {
+      console.error('WebSocket error:', error)
+      this.updateStatus('error', '连接出错')
+      this.lock = false
+    }
+    this.websocket.onclose = () => {
+      this.OnData?.dispose()
+      this.updateStatus('disconnected')
+      this.lock = false
+    }
+    this.OnData = this.term.onData((data) => {
+      if (this.status === 'connected') {
+        const tmp = { type: 2, data: data }
+        this.websocket?.send(JSON.stringify(tmp))
+      }
+    })
+    this.OnResize = this.term.onResize(() => {
+      if (this.status === 'connected') {
+        this.resize()
+      }
+    })
   }
 
   public resize() {
-    if (this.status) {
+    if (this.status === 'connected') {
       const option = {
         type: 1,
         data: {

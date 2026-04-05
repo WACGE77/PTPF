@@ -17,7 +17,9 @@ export const resourceStore = defineStore('resource', () => {
     try {
       const res = await api.groupApi.getGroup({ all: true })
       if (res.data.code === 200) {
-        groups.splice(0, groups.length, ...res.data.detail)
+        // 从detail字段中提取系统组数据
+        const groupData = res.data.detail || res.data.success || []
+        groups.splice(0, groups.length, ...groupData)
         buildTreeData()
         return groups
       }

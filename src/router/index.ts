@@ -1,52 +1,66 @@
 import { createRouter, createWebHistory } from 'vue-router'
-import { useRouteStore } from '@/stores/route'
 
 const router = createRouter({
   history: createWebHistory(import.meta.env.BASE_URL),
   routes: [
     { path: '/', redirect: '/home' },
-    { path: '/login', component: () => import('@/views/LoginView.vue') },
+    { path: '/login', name: 'login', component: () => import('@/views/LoginView.vue') },
     {
       path: '/home',
       name: 'home',
       component: () => import('@/views/HomeView.vue'),
       redirect: '/overview',
       children: [
-        // 基础静态路由
-        { path: '/overview', component: () => import('@/views/IndexPage.vue') },
+        { path: '/overview', name: 'overview', component: () => import('@/views/IndexPage.vue') },
+        { path: '/resource', name: 'resource', component: () => import('@/views/ResourceManage.vue') },
+        { path: '/user', name: 'user', component: () => import('@/views/UserManage.vue') },
+        { path: '/role', name: 'role', component: () => import('@/views/RoleManage.vue') },
+        { path: '/permission', name: 'permission', component: () => import('@/views/PermissionManage.vue') },
+        { path: '/audit', name: 'audit', component: () => import('@/views/AuditView.vue') },
+        { path: '/ssh-blacklist', name: 'ssh-blacklist', component: () => import('@/views/SSHBlacklistView.vue') },
       ],
+    },
+    {
+      path: '/terminal',
+      name: 'terminal',
+      component: () => import('@/views/TerminalView.vue'),
     },
   ],
 })
 
-// 路由守卫，实现动态路由加载
-router.beforeEach((to, from, next) => {
-  // 从localStorage获取token
-  const token: string | null = localStorage.getItem('token')
+let routeStoreLoaded = false
+
+router.beforeEach(async (to, from, next) => {
+  const token = localStorage.getItem('token')
   
-  // 如果没有token且不是登录页，重定向到登录页面
-  if (to.path !== '/login' && !token) {
+  if (to.path === '/login') {
+    next()
+    return
+  }
+  
+  if (!token) {
     next('/login')
     return
   }
   
-  // 如果已经有token且不是登录页，尝试加载动态路由
-  if (token && to.path !== '/login') {
-    const routeStore = useRouteStore()
-    if (!routeStore.isRoutesLoaded) {
-      routeStore.loadRoutes().then(() => {
-        // 动态路由加载完成后，重新导航到目标路径
-        next({ ...to, replace: true })
-      }).catch(() => {
-        // 加载失败，继续导航
-        next()
-      })
-    } else {
+  if (!routeStoreLoaded && to.path !== '/login') {
+    try {
+      const { useRouteStore } = await import('@/stores/route')
+      const routeStore = useRouteStore()
+      await routeStore.loadRoutes()
+      routeStoreLoaded = true
+      next({ ...to, replace: true })
+    } catch (error) {
+      console.error('加载路由失败:', error)
       next()
     }
   } else {
     next()
   }
 })
+
+export const resetRouteStoreLoaded = () => {
+  routeStoreLoaded = false
+}
 
 export default router

@@ -39,10 +39,10 @@ export class RdpDisplay {
     try {
       const params = new URLSearchParams()
       params.append('token', token)
-      params.append('resource_id', String(resource))
-      params.append('voucher_id', String(voucher))
+      params.append('resource', String(resource))
+      params.append('voucher', String(voucher))
       params.append('resolution', options?.resolution || '1024x768')
-      params.append('color_depth', String(options?.color_depth || 16))
+      params.append('color_depth', String(options?.color_depth || 32))
       params.append('enable_clipboard', String(options?.enable_clipboard !== false))
 
       const wsUrl = requests.getWsBaseUrl() + `/terminal/rdp/?${params.toString()}`
@@ -169,6 +169,10 @@ export class RdpDisplay {
       
       // 处理窗口大小变化
       this.setupResizeEvents()
+      
+      // 开始连接（这是关键步骤）
+      console.log('开始Guacamole连接...')
+      this.client.connect()
       
     } catch (error: any) {
       console.error('初始化Guacamole客户端失败:', error)

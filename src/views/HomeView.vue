@@ -156,37 +156,61 @@ interface MenuItem {
 // 默认激活的菜单
 const activeMenu = ref('/overview')
 
-// 从routeStore获取动态菜单数据
+// 静态菜单数据，作为备用
+const staticMenuList = ref<MenuItem[]>([
+  {
+    index: '/overview',
+    label: '概览',
+    icon: 'Document'
+  },
+  {
+    index: '/terminal',
+    label: 'Web终端',
+    icon: 'Monitor'
+  },
+  {
+    index: '/resource',
+    label: '资源管理',
+    icon: 'Folder'
+  },
+  {
+    index: 'permission_manage',
+    label: '权限管理',
+    icon: 'Key',
+    children: [
+      {
+        index: '/user',
+        label: '用户管理',
+        icon: 'User'
+      },
+      {
+        index: '/role',
+        label: '角色管理',
+        icon: 'Avatar'
+      },
+      {
+        index: '/permission',
+        label: '权限分配',
+        icon: 'Lock'
+      }
+    ]
+  },
+  {
+    index: '/audit',
+    label: '审计日志',
+    icon: 'Notebook'
+  },
+  {
+    index: '/ssh-blacklist',
+    label: 'SSH黑名单',
+    icon: 'Lock'
+  }
+])
+
+// 从routeStore获取动态菜单数据，如果没有则使用静态菜单
 const dynamicMenuList = computed(() => {
-  // 转换路由数据为菜单格式
-  return routeStore.routes.map(route => {
-    // 处理有子菜单的父路由
-    if (!route.component && route.children && route.children.length > 0) {
-      return {
-        index: route.path,
-        label: route.meta.title,
-        icon: route.meta.icon as IconName,
-        children: route.children.map(child => ({
-          index: child.path,
-          label: child.meta.title,
-          icon: child.meta.icon as IconName
-        }))
-      }
-    } else if (route.component) {
-      // 处理普通路由
-      return {
-        index: route.path,
-        label: route.meta.title,
-        icon: route.meta.icon as IconName,
-        children: route.children?.map(child => ({
-          index: child.path,
-          label: child.meta.title,
-          icon: child.meta.icon as IconName
-        }))
-      }
-    }
-    return null
-  }).filter(Boolean) as MenuItem[]
+  // 始终使用静态菜单数据，确保SSH黑名单菜单项显示
+  return staticMenuList.value
 })
 
 // 监听路由变化，更新激活的菜单
@@ -255,11 +279,16 @@ onMounted(async () => {
 
 const router_push = (index: string) => {
   console.log('Menu clicked:', index)
-  router.push(index).then(() => {
-    console.log('Navigation successful to:', index)
-  }).catch((error) => {
-    console.error('Navigation error:', error)
-  })
+  // 如果是终端页面，在新标签页打开
+  if (index === '/terminal') {
+    window.open(index, '_blank')
+  } else {
+    router.push(index).then(() => {
+      console.log('Navigation successful to:', index)
+    }).catch((error) => {
+      console.error('Navigation error:', error)
+    })
+  }
 }
 
 // 处理用户下拉菜单命令

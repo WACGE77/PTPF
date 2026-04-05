@@ -105,7 +105,7 @@ const init = async () => {
       port: props.resource.port,
       description: props.resource.description || '',
       group: props.resource.group,
-      protocol: props.resource.protocols?.[0] || 1
+      protocol: props.resource.protocol?.id || 1
     }
   } else {
     formData.value = {
@@ -143,11 +143,12 @@ const submit = async () => {
   try {
     if (formData.value.id) {
       data.id = formData.value.id
+      data.protocol_id = formData.value.protocol
       await store.updateResource(data)
       ElMessage.success('修改成功')
       emit('success')
     } else {
-      data.protocol_ids = [formData.value.protocol]
+      data.protocol_id = formData.value.protocol
       await store.addResource(data)
       ElMessage.success('添加成功')
       emit('success')

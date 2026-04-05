@@ -40,9 +40,6 @@
                 </el-icon>
                 <span class="node-label">{{ node.label }}</span>
                 <el-tag v-if="data.type === 'group'" size="small" type="info">组</el-tag>
-                <el-tag v-if="data.type === 'resource'" :type="data.data.status ? 'success' : 'danger'" size="small">
-                  {{ data.data.status ? '在线' : '离线' }}
-                </el-tag>
               </div>
               <div class="node-actions" @click.stop>
                 <el-dropdown v-if="data.type === 'group'" trigger="click">
@@ -222,6 +219,7 @@
         />
       </template>
     </el-dialog>
+
   </div>
 </template>
 
@@ -236,6 +234,8 @@ import ResourceForm from '@/components/ResourceManage/ResourceForm.vue'
 import VoucherForm from '@/components/ResourceManage/VoucherForm.vue'
 import BindVoucher from '@/components/ResourceManage/BindVoucher.vue'
 import ResourceDetail from '@/components/ResourceManage/ResourceDetail.vue'
+
+
 import { resourceStore } from '@/stores/resource'
 import requests from '@/requests'
 import type { ResourceGroup, Resource as ResourceType, Voucher, TreeNode } from '@/struct/resource.ts'
@@ -430,6 +430,10 @@ const handleDeleteVoucherGroup = async (data: TreeDataNode) => {
     request_error(err)
   }
 }
+
+
+
+
 
 const closeGroupDialog = () => {
   groupDialogVisible.value = false

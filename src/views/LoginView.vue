@@ -86,11 +86,12 @@ import { getIconComponent } from '@/utils/iconMap.ts'
 import { ref, onMounted } from 'vue'
 import { ElMessage } from 'element-plus'
 import api from '@/api/index.ts'
-import {request_error} from '@/requests'
+import { request_error } from '@/requests'
 import router from '@/router'
+
 const formRef = ref()
-const isPageLoading = ref(true) // 页面加载状态
-const isLoginLoading = ref(false) // 登录按钮加载状态
+const isPageLoading = ref(true)
+const isLoginLoading = ref(false)
 const loginForm = ref({
   account: '',
   password: '',
@@ -110,59 +111,48 @@ const loginRule = ref({
     { min: 6, max: 20, message: '密码为6-20字符', trigger: 'blur' },
   ],
 })
-// 登录处理函数
+
 const handleLogin = async () => {
   isLoginLoading.value = true
   try {
     const res = await api.authApi.login(loginForm.value)
-    console.log('登录响应:', res)
     if (res.data.code == 200) {
-      // 检查响应结构
+      let token = null
       if (res.data.token) {
-        // 格式1: { code: 200, token: { access: '...' } }
-        const token = res.data.token.access
-        localStorage.setItem('token', token)
-        ElMessage.success('登录成功！')
-        await router.push('/home')
+        token = res.data.token.access
       } else if (res.data.detail && res.data.detail.token) {
-        // 格式2: { code: 200, detail: { token: { access: '...' } } }
-        const token = res.data.detail.token.access
+        token = res.data.detail.token.access
+      }
+      
+      if (token) {
         localStorage.setItem('token', token)
         ElMessage.success('登录成功！')
         await router.push('/home')
       } else {
-        // 响应格式不符合预期
-        console.error('响应格式错误:', res.data)
         ElMessage.error('登录失败：响应格式错误')
       }
     } else {
-      // 登录失败
       if (typeof res.data === 'string') {
-        // 直接返回字符串错误信息
         ElMessage.error(`登录失败：${res.data}`)
       } else if (typeof res.data === 'object' && res.data !== null) {
-        // 返回对象错误信息
         if (res.data.msg) {
           ElMessage.error(`登录失败：${res.data.msg}`)
         } else if (res.data.detail) {
           ElMessage.error(`登录失败：${res.data.detail}`)
         } else {
-          // 尝试将对象转换为字符串
           ElMessage.error(`登录失败：${JSON.stringify(res.data)}`)
         }
       } else {
         ElMessage.error('登录失败：未知错误')
       }
     }
-  } catch (error:any) {
-    console.error('登录错误:', error)
+  } catch (error: any) {
     request_error(error)
   } finally {
     isLoginLoading.value = false
   }
 }
 
-// 组件挂载后隐藏加载动画
 onMounted(() => {
   setTimeout(() => {
     isPageLoading.value = false

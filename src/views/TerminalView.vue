@@ -1,305 +1,619 @@
 <template>
   <div class="terminal-view">
-    <div class="page-header">
-      <h2 class="title">终端管理</h2>
+    <!-- 顶部导航栏 -->
+    <div class="terminal-header">
+      <div class="header-left">
+        <h2 class="terminal-title">WEB终端</h2>
+      </div>
+      <div class="header-right">
+        <el-button type="primary" @click="goToManagePage">
+          <el-icon><House /></el-icon>
+          回到管理页面
+        </el-button>
+      </div>
     </div>
-    <div class="terminal-container">
-      <div class="resource-panel">
-        <div class="panel-header">
-          <span class="panel-title">资源</span>
+    
+    <!-- 主要内容区域 -->
+    <div class="main-content">
+      <!-- 左侧资源列表 -->
+      <div class="resource-sidebar">
+        <div class="sidebar-header">
+          <h3>资源列表</h3>
           <el-input
-            v-model="searchQuery"
+            v-model="searchKeyword"
             placeholder="搜索资源"
             clearable
             size="small"
-            prefix-icon="Search"
-            @input="handleSearch"
-          />
+            class="search-input"
+          >
+            <template #prefix>
+              <el-icon class="el-input__icon"><Search /></el-icon>
+            </template>
+          </el-input>
         </div>
         <el-tree
-          ref="resourceTreeRef"
-          :data="filteredTreeData"
-          :props="treeProps"
+          v-if="resources.length > 0"
+          :data="resources"
           node-key="id"
-          :expand-on-click-node="false"
-          :default-expand-all="true"
-          @node-click="handleNodeClick"
+          default-expand-all
           :filter-node-method="filterNode"
+          class="resource-tree"
         >
           <template #default="{ node, data }">
-            <div class="custom-tree-node">
-              <div class="node-content">
-                <el-icon class="node-icon" :class="data.type">
-                  <component :is="getNodeIcon(data.type)" />
+            <div class="tree-node">
+              <div class="node-info">
+                <el-icon class="node-icon">
+                  <Monitor v-if="data.protocol?.name === 'RDP'" />
+                  <Connection v-else />
                 </el-icon>
-                <span class="node-label">{{ node.label }}</span>
-                <el-tag v-if="data.type === 'group'" size="small" type="info">组</el-tag>
+                <span class="node-label">{{ data.name }}</span>
+                <el-tag size="small" type="info" class="protocol-tag">
+                  {{ data.protocol?.name || 'SSH' }}
+                </el-tag>
               </div>
-              <div class="node-actions" @click.stop>
-                <el-dropdown v-if="data.type === 'resource'" trigger="click">
-                  <el-button size="small" text>
-                    <el-icon><MoreFilled /></el-icon>
+              <el-dropdown @click.stop trigger="click">
+                <el-button size="small" type="primary" text>
+                  <el-icon><Connection /></el-icon>
+                  连接
+                </el-button>
+                <template #dropdown>
+                <el-dropdown-menu>
+                  <el-dropdown-item 
+                    v-for="voucher in getResourceVouchers(data)"
+                    :key="`current_${voucher.id}`"
+                    @click="connectResource(data, voucher)"
+                  >
+                    <el-icon><Key /></el-icon>
+                    {{ voucher.name }} ({{ voucher.username }})
+                  </el-dropdown-item>
+                  <el-dropdown-item v-if="!getResourceVouchers(data)?.length" disabled>
+                    暂无可用凭证
+                  </el-dropdown-item>
+                </el-dropdown-menu>
+              </template>
+              </el-dropdown>
+            </div>
+          </template>
+        </el-tree>
+        <div v-else class="no-resources">
+          <el-empty description="暂无资源" />
+        </div>
+      </div>
+      
+      <!-- 右侧终端区域 -->
+      <div class="terminal-content">
+        <div v-if="!tabs.length" class="terminal-placeholder">
+          <el-empty description="请从左侧选择资源和凭证进行连接" />
+        </div>
+        <el-tabs
+          v-else
+          v-model="activeTab"
+          @tab-remove="tabRemove"
+          @tab-change="tabChange"
+          closable
+          class="terminal-tabs"
+        >
+          <el-tab-pane
+            v-for="tab in tabs"
+            :key="tab.name"
+            :name="tab.name"
+          >
+            <template #label>
+              <div class="tab-label">
+                <span class="tab-title">{{ tab.resourceName }}</span>
+                <span class="tab-voucher">({{ tab.voucherName }})</span>
+                <el-tag 
+                  :type="getStatusTagType(tab)" 
+                  size="small"
+                  class="status-tag"
+                >
+                  {{ getStatusText(tab) }}
+                </el-tag>
+                <el-dropdown @click.stop trigger="click">
+                  <el-button size="small" text class="tab-more-btn">
+                    <el-icon><More /></el-icon>
                   </el-button>
                   <template #dropdown>
                     <el-dropdown-menu>
-                      <!-- 协议 1 对应 SSH -->
-                      <el-dropdown-item v-if="data.data.protocols.includes(1)" v-for="voucher in data.data.vouchers" :key="voucher.id" @click="handleConnectResourceWithVoucher(data, voucher, 'ssh')">
-                        SSH 连接 ({{ voucher.name }})
+                      <el-dropdown-item @click="reconnectTab(tab)">
+                        <el-icon><RefreshRight /></el-icon>
+                        重新连接
                       </el-dropdown-item>
-                      <!-- 协议 2 对应 RDP -->
-                      <el-dropdown-item v-if="data.data.protocols.includes(2)" v-for="voucher in data.data.vouchers" :key="voucher.id" @click="handleConnectResourceWithVoucher(data, voucher, 'rdp')">
-                        RDP 连接 ({{ voucher.name }})
+                      <el-dropdown-item v-if="tab.type === 'rdp'" @click="toggleFullscreen(tab)">
+                        <el-icon><FullScreen /></el-icon>
+                        全屏模式
+                      </el-dropdown-item>
+                      <el-dropdown-item divided @click="tabRemove(tab.name)" style="color: #F56C6C">
+                        <el-icon><Close /></el-icon>
+                        关闭连接
                       </el-dropdown-item>
                     </el-dropdown-menu>
                   </template>
                 </el-dropdown>
               </div>
+            </template>
+            <div
+              v-show="tab.name === activeTab"
+              :ref="(el) => { tab.ele = el as Dom }"
+              class="terminal-area"
+            >
+              <!-- RDP状态覆盖层 -->
+              <div v-if="tab.type === 'rdp' && getStatus(tab) !== 'connected'" class="rdp-status-overlay">
+                <div v-if="getStatus(tab) === 'disconnected'" class="status-content">
+                  <el-icon :size="48"><Monitor /></el-icon>
+                  <p>远程桌面已断开</p>
+                  <el-button type="primary" @click="reconnectTab(tab)">
+                    <el-icon><Connection /></el-icon>
+                    重新连接
+                  </el-button>
+                </div>
+                <div v-else-if="getStatus(tab) === 'connecting'" class="status-content">
+                  <el-icon class="loading-icon" :size="48"><Loading /></el-icon>
+                  <p>正在连接远程桌面...</p>
+                </div>
+                <div v-else-if="getStatus(tab) === 'error'" class="status-content">
+                  <el-icon :size="48"><WarningFilled /></el-icon>
+                  <p>连接失败</p>
+                  <el-alert
+                    v-if="getErrorMessage(tab)"
+                    :title="getErrorMessage(tab)"
+                    type="error"
+                    show-icon
+                    :closable="false"
+                    class="error-alert"
+                  />
+                  <el-button type="primary" @click="reconnectTab(tab)">
+                    <el-icon><Connection /></el-icon>
+                    重新连接
+                  </el-button>
+                </div>
+              </div>
             </div>
-          </template>
-        </el-tree>
-      </div>
-      <div class="terminal-panel">
-        <SSHTabs ref="sshTabsRef" />
+          </el-tab-pane>
+        </el-tabs>
       </div>
     </div>
   </div>
 </template>
 
-<script setup lang="ts">
-import { ref, computed, onMounted } from 'vue'
-import { ElMessage } from 'element-plus'
-import { MoreFilled, Folder, Monitor, Key, Search } from '@element-plus/icons-vue'
-import SSHTabs from '@/components/SShTerminal/SSHTabs.vue'
-import { resourceStore } from '@/stores/resource'
-import type { Resource, Voucher } from '@/struct/resource.ts'
+<script lang="ts" setup>
+import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
+import { 
+  Search, Connection, Close, Monitor, Key, Link, House, 
+  More, RefreshRight, FullScreen, Loading, WarningFilled 
+} from '@element-plus/icons-vue'
+import Shell from '@/utils/terminal.ts'
+import RdpShell from '@/utils/rdpTerminal.ts'
+import type { Dom, terminalTab } from '@/struct/terminal.ts'
+import api from '@/api'
+import type { Voucher } from '@/struct/resource.ts'
 
-const store = resourceStore()
-const sshTabsRef = ref()
-const resourceTreeRef = ref()
-const searchQuery = ref('')
+// 资源列表
+const resources = ref<any[]>([])
+const searchKeyword = ref('')
 
-const treeProps = {
-  children: 'children',
-  label: 'label'
+// Tabs状态
+const tabs = ref<any[]>([])
+const activeTab = ref<string>()
+
+// 加载资源列表
+const loadResources = async () => {
+  try {
+    const response = await api.resourceApi.getResource({})
+    if (response.data && response.data.code === 200) {
+      resources.value = response.data.detail || []
+    }
+  } catch (error) {
+    console.error('加载资源失败:', error)
+  }
 }
 
-const treeData = computed(() => {
-  return store.treeData
-})
+// 获取资源的凭证列表
+const getResourceVouchers = (resource: any): Voucher[] => {
+  return resource.vouchers || []
+}
 
-const filteredTreeData = computed(() => {
-  // 过滤掉凭证节点，只显示资源组和资源
-  const filterOutVouchers = (nodes: any[]): any[] => {
-    return nodes.filter(node => {
-      if (node.type === 'voucher') {
-        return false
-      }
-      if (node.children && node.children.length > 0) {
-        node.children = filterOutVouchers(node.children)
-        return node.children.length > 0 || node.type !== 'group'
-      }
-      return true
-    })
-  }
-
-  let filteredNodes = filterOutVouchers([...treeData.value])
-
-  // 应用搜索过滤
-  if (searchQuery.value) {
-    const query = searchQuery.value.toLowerCase()
-    const filterBySearch = (nodes: any[]): any[] => {
-      return nodes.filter(node => {
-        const matches = node.label.toLowerCase().includes(query)
-        if (node.children && node.children.length > 0) {
-          node.children = filterBySearch(node.children)
-          return matches || node.children.length > 0
-        }
-        return matches
-      })
-    }
-    filteredNodes = filterBySearch(filteredNodes)
-  }
-
-  return filteredNodes
-})
-
+// 过滤资源
 const filterNode = (value: string, data: any) => {
   if (!value) return true
-  return data.label.toLowerCase().includes(value.toLowerCase())
+  return data.name.toLowerCase().includes(value.toLowerCase())
 }
 
-const getNodeIcon = (type: string) => {
-  if (type === 'group') return Folder
-  if (type === 'resource') return Monitor
-  return Key
-}
 
-const handleNodeClick = (data: any) => {
-  if (data.type === 'resource') {
-    handleConnectResource(data)
-  }
-}
 
-const handleConnectResource = async (data: any) => {
-  const resource = data.data as Resource
-  if (!resource.vouchers || resource.vouchers.length === 0) {
-    ElMessage.warning('该资源未绑定凭证，无法连接')
+// 连接资源
+const connectResource = async (resource: any, voucher: Voucher) => {
+  const type = resource.protocol?.name?.toLowerCase() === 'rdp' ? 'rdp' : 'ssh'
+  const key = `${type}_${resource.id}_${voucher.id}_${Date.now()}`
+  
+  // 检查是否已存在相同的连接
+  const existingTab = tabs.value.find(
+    tab => tab.resourceId === resource.id && tab.voucherId === voucher.id
+  )
+  if (existingTab) {
+    activeTab.value = existingTab.name
     return
   }
-  // 使用第一个凭证进行连接
-  const voucher = resource.vouchers[0]
-  if (!voucher) {
-    ElMessage.warning('凭证信息不存在，无法连接')
-    return
+  
+  // 创建新终端
+  let shell: Shell | RdpShell
+  if (type === 'ssh') {
+    shell = new Shell()
+  } else {
+    shell = new RdpShell()
   }
-  // 从本地存储获取token
-  const token = localStorage.getItem('token')
-  if (!token) {
-    ElMessage.error('请先登录')
-    return
+  
+  shell.onStatusChange = () => {
+    tabs.value = [...tabs.value]
   }
-  // 根据资源协议选择连接类型
-  const connectionType = resource.protocols.includes(1) ? 'ssh' : resource.protocols.includes(2) ? 'rdp' : 'ssh'
-  await sshTabsRef.value.session_add(resource.id, voucher.id, token, resource.name, connectionType)
+  
+  const token = localStorage.getItem('token') || ''
+  
+  const instance = {
+    name: key,
+    type,
+    resourceName: resource.name,
+    resourceId: resource.id,
+    voucherId: voucher.id,
+    voucherName: voucher.name,
+    token,
+    shell,
+    ele: null
+  }
+  
+  tabs.value.push(instance)
+  activeTab.value = instance.name
+  
+  await nextTick()
+  if (instance.ele) {
+    instance.shell.mount(instance.ele)
+    await instance.shell.connect(resource.id, voucher.id, token)
+  }
 }
 
-const handleConnectResourceWithVoucher = async (data: any, voucher: Voucher, type: 'ssh' | 'rdp' = 'ssh') => {
-  const resource = data.data as Resource
-  // 从本地存储获取token
-  const token = localStorage.getItem('token')
-  if (!token) {
-    ElMessage.error('请先登录')
-    return
+// 查找tab
+const findTab = (name: string) => {
+  return tabs.value.find(tab => tab.name === name)
+}
+
+// 移除tab
+const tabRemove = (name: string) => {
+  const tab = findTab(name)
+  if (!tab) return
+  tab.shell.close()
+  tabs.value.splice(tabs.value.indexOf(tab), 1)
+  
+  // 如果关闭的是当前激活的tab，切换到其他tab
+  if (activeTab.value === name && tabs.value.length > 0) {
+    activeTab.value = tabs.value[tabs.value.length - 1].name
   }
-  await sshTabsRef.value.session_add(resource.id, voucher.id, token, resource.name, type)
 }
 
-const handleSearch = () => {
-  // 搜索逻辑已在filteredTreeData计算属性中实现
+// 切换tab
+const tabChange = (name: string) => {
+  activeTab.value = name
 }
 
-onMounted(async () => {
-  await store.loadAll()
+// 重新连接tab
+const reconnectTab = async (tab: terminalTab) => {
+  tab.shell.close()
+  if (tab.ele) {
+    tab.ele.innerHTML = ''
+    if (tab.type === 'ssh') {
+      tab.shell = new Shell()
+    } else {
+      tab.shell = new RdpShell()
+    }
+    tab.shell.onStatusChange = () => {
+      tabs.value = [...tabs.value]
+    }
+    tab.shell.mount(tab.ele)
+  }
+  await tab.shell.connect(tab.resourceId, tab.voucherId, tab.token)
+}
+
+// 获取状态
+const getStatus = (tab: terminalTab) => {
+  if ('getStatus' in tab.shell) {
+    return tab.shell.getStatus()
+  }
+  return 'connected'
+}
+
+// 获取错误信息
+const getErrorMessage = (tab: terminalTab) => {
+  if ('getErrorMessage' in tab.shell) {
+    return tab.shell.getErrorMessage()
+  }
+  return ''
+}
+
+// 获取状态文本
+const getStatusText = (tab: terminalTab): string => {
+  const status = getStatus(tab)
+  const statusTextMap: Record<string, string> = {
+    'disconnected': '已断开',
+    'connecting': '连接中',
+    'connected': '已连接',
+    'error': '错误'
+  }
+  return statusTextMap[status] || '未知'
+}
+
+// 获取状态标签类型
+const getStatusTagType = (tab: terminalTab): 'success' | 'warning' | 'danger' | 'info' => {
+  const status = getStatus(tab)
+  const tagTypeMap: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
+    'disconnected': 'info',
+    'connecting': 'warning',
+    'connected': 'success',
+    'error': 'danger'
+  }
+  return tagTypeMap[status] || 'info'
+}
+
+// 全屏切换
+const toggleFullscreen = (tab: terminalTab) => {
+  if (tab.ele) {
+    if (document.fullscreenElement) {
+      document.exitFullscreen()
+    } else {
+      tab.ele.requestFullscreen()
+    }
+  }
+}
+
+// 监听搜索关键词变化
+watch(searchKeyword, (val) => {
+  // el-tree会自动处理过滤
+})
+
+// 回到管理页面
+const goToManagePage = () => {
+  window.location.href = '/' 
+}
+
+// 生命周期
+onMounted(() => {
+  loadResources()
+})
+
+onBeforeUnmount(() => {
+  tabs.value.forEach(tab => tab.shell.close())
+  tabs.value = []
 })
 </script>
 
 <style scoped lang="scss">
-$primary-color: #409eff;
-$success-color: #67c23a;
-$danger-color: #f56c6c;
-$warning-color: #e6a23c;
-$text-primary: #303133;
-$text-regular: #606266;
-$border-color: #e6e6e6;
-$bg-light: #f8f9fa;
-
 .terminal-view {
-  padding: 20px;
-  background-color: #ffffff;
-  min-height: calc(100vh - 60px);
-  box-sizing: border-box;
-
-  .page-header {
-    margin-bottom: 16px;
-
-    .title {
-      font-size: 18px;
-      font-weight: 600;
-      color: $text-primary;
-      margin: 0;
+  width: 100vw;
+  height: 100vh;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background-color: #f5f7fa;
+  
+  .terminal-header {
+    height: 60px;
+    background-color: #fff;
+    border-bottom: 1px solid #e6e8eb;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0 20px;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+    
+    .header-left {
+      .terminal-title {
+        margin: 0;
+        font-size: 18px;
+        font-weight: 600;
+        color: #303133;
+      }
+    }
+    
+    .header-right {
+      display: flex;
+      gap: 10px;
     }
   }
-
-  .terminal-container {
+  
+  .main-content {
+    flex: 1;
     display: flex;
-    border: 1px solid $border-color;
-    border-radius: 6px;
     overflow: hidden;
-    height: calc(100vh - 180px);
-    gap: 1px;
-
-    .resource-panel {
-      width: 250px;
-      background-color: #ffffff;
+    
+    .resource-sidebar {
+      width: 350px;
+      height: 100%;
+      background-color: #fff;
+      border-right: 1px solid #e6e8eb;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      box-shadow: 1px 0 3px rgba(0, 0, 0, 0.05);
-
-      .panel-header {
-        display: flex;
-        justify-content: space-between;
-        align-items: center;
-        padding: 12px 16px;
-        border-bottom: 1px solid $border-color;
-        background: $bg-light;
-
-        .panel-title {
-          font-size: 14px;
+    
+      .sidebar-header {
+        padding: 16px;
+        border-bottom: 1px solid #e6e8eb;
+        
+        h3 {
+          margin: 0 0 12px 0;
+          font-size: 16px;
           font-weight: 600;
-          color: $text-primary;
         }
-
-        :deep(.el-input) {
-          width: 160px;
+        
+        .search-input {
+          width: 100%;
         }
       }
-
-      :deep(.el-tree) {
+      
+      .resource-tree {
         flex: 1;
         overflow: auto;
+        padding: 8px;
+        
+        .tree-node {
+          display: flex;
+          justify-content: space-between;
+          align-items: center;
+          width: 100%;
+          
+          .node-info {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            flex: 1;
+            min-width: 0;
+            
+            .node-icon {
+              font-size: 14px;
+              color: #409eff;
+            }
+            
+            .node-label {
+              font-size: 13px;
+              overflow: hidden;
+              text-overflow: ellipsis;
+              white-space: nowrap;
+            }
+            
+            .protocol-tag {
+              flex-shrink: 0;
+            }
+          }
+        }
       }
-
-      .custom-tree-node {
+      
+      .no-resources {
         flex: 1;
         display: flex;
         align-items: center;
-        justify-content: space-between;
-        padding-right: 8px;
-        width: 100%;
-
-        .node-content {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-
-          .node-icon {
-            font-size: 14px;
-            &.group {
-              color: $primary-color;
-            }
-            &.resource {
-              color: $success-color;
-            }
-            &.voucher {
-              color: $warning-color;
-            }
-          }
-
-          .node-label {
-            font-size: 13px;
-          }
-        }
-
-        .node-actions {
-          display: flex;
-          align-items: center;
-        }
-      }
-
-      :deep(.el-tree-node__content) {
-        height: 32px;
+        justify-content: center;
       }
     }
-
-    .terminal-panel {
+    
+    .terminal-content {
       flex: 1;
+      height: 100%;
       display: flex;
       flex-direction: column;
       overflow: hidden;
-      background-color: #ffffff;
-      min-width: 0;
+      
+      .terminal-placeholder {
+        flex: 1;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        background-color: #fafafa;
+      }
+      
+      .terminal-tabs {
+        flex: 1;
+        display: flex;
+        flex-direction: column;
+        
+        :deep(.el-tabs__header) {
+          margin: 0;
+          background-color: #fff;
+          border-bottom: 1px solid #e6e8eb;
+        }
+        
+        :deep(.el-tabs__content) {
+          flex: 1;
+          overflow: hidden;
+          padding: 0;
+        }
+        
+        :deep(.el-tab-pane) {
+          height: 100%;
+        }
+        
+        .tab-label {
+          display: flex;
+          align-items: center;
+          gap: 6px;
+          
+          .tab-title {
+            max-width: 120px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+            font-size: 13px;
+          }
+          
+          .tab-voucher {
+            font-size: 11px;
+            color: #909399;
+            max-width: 100px;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+          }
+          
+          .status-tag {
+            margin-left: 4px;
+          }
+          
+          .tab-more-btn {
+            padding: 0;
+            margin: 0;
+            height: 20px;
+            width: 20px;
+          }
+        }
+        
+        .terminal-area {
+          width: 100%;
+          height: 100%;
+          position: relative;
+          background-color: #000;
+          
+          .rdp-status-overlay {
+            position: absolute;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            background-color: rgba(0, 0, 0, 0.85);
+            z-index: 10;
+            
+            .status-content {
+              display: flex;
+              flex-direction: column;
+              align-items: center;
+              gap: 16px;
+              color: #fff;
+              
+              p {
+                margin: 0;
+                font-size: 16px;
+              }
+              
+              .loading-icon {
+                animation: spin 1s linear infinite;
+              }
+              
+              .error-alert {
+                max-width: 300px;
+                margin-top: 8px;
+              }
+            }
+          }
+        }
+      }
     }
+  }
+}
+
+@keyframes spin {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
   }
 }
 </style>

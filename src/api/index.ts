@@ -30,7 +30,8 @@ const resourceApi = {
   deleteResource: (data: Record<string, unknown>) =>
     requests.post('/resource/resource/del/', data),
   updateResource: (data: Record<string, unknown>) =>
-    requests.post('/resource/resource/edit/', data)
+    requests.post('/resource/resource/edit/', data),
+
 }
 
 const voucherApi = {

@@ -19,6 +19,12 @@ export interface Voucher {
   group: number
 }
 
+export interface Protocol {
+  id: number
+  name: string
+  code: string
+}
+
 export interface Resource {
   id: number
   name: string
@@ -31,7 +37,7 @@ export interface Resource {
   create_date: string
   update_date: string
   group: number
-  protocols: number[]
+  protocol: Protocol
   vouchers: Voucher[]
 }
 

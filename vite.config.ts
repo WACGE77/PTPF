@@ -13,7 +13,13 @@ export default defineConfig({
     },
   },
   server: {
-    // 允许指定的域名访问开发服务器
-    allowedHosts: ['www.wacgee.icu'],
+    host: '0.0.0.0',
+    port: 5173,
+    allowedHosts: ['www.wacgee.icu', 'localhost', '127.0.0.1', '192.168.5.24'],
+    hmr: {
+      host: 'localhost',
+      protocol: 'ws',
+      port: 5173,
+    },
   },
 })

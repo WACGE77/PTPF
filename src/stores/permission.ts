@@ -183,6 +183,13 @@ export const usePermissionStore = defineStore('permission', () => {
     await getPermissionList()
   }
 
+  // 检查是否有指定权限
+  const hasPermission = (permissionCode: string): boolean => {
+    // 这里简化处理，实际项目中应该从用户的权限列表中检查
+    // 暂时返回true，允许所有用户访问
+    return true
+  }
+
   return {
     // 状态
     permissionList,
@@ -196,6 +203,7 @@ export const usePermissionStore = defineStore('permission', () => {
     loadPermissions,
     savePermissions,
     setSelectedRole,
-    initialize
+    initialize,
+    hasPermission
   }
 })
