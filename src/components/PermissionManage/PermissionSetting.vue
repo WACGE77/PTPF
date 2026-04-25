@@ -14,31 +14,65 @@
         :closable="false"
         class="protected-alert"
       />
-      <div class="permission-section" v-for="(section, index) in permissionStore.permissionSections" :key="index">
-        <h3 class="section-title">{{ section.name }}</h3>
-        <el-checkbox-group 
-          v-model="permissionStore.selectedPermissions"
-          :disabled="permissionStore.selectedRole.protected"
-        >
-          <el-checkbox
-            v-for="permission in section.permissions"
-            :key="permission.id"
-            :label="permission.id"
-            class="permission-item"
-            :disabled="permissionStore.selectedRole.protected"
-          >
-            {{ permission.name }}
-            <span class="permission-desc">{{ permission.description }}</span>
-          </el-checkbox>
-        </el-checkbox-group>
-      </div>
+      <el-tabs v-model="activeTab" type="card" class="permission-tabs">
+        <el-tab-pane label="系统权限" name="system">
+          <div class="permission-section" v-for="(section, index) in permissionStore.permissionSections" :key="index">
+            <h3 class="section-title">{{ section.name }}</h3>
+            <el-checkbox-group 
+              v-model="permissionStore.selectedPermissions"
+              :disabled="permissionStore.selectedRole.protected"
+            >
+              <el-checkbox
+                v-for="permission in section.permissions"
+                :key="permission.id"
+                :label="permission.id"
+                class="permission-item"
+                :disabled="permissionStore.selectedRole.protected"
+              >
+                {{ permission.name }}
+                <span class="permission-desc">{{ permission.description }}</span>
+              </el-checkbox>
+            </el-checkbox-group>
+          </div>
+        </el-tab-pane>
+        <el-tab-pane label="资源组权限" name="resource">
+          <div class="resource-group-section" v-for="group in resourceGroups" :key="group.id">
+            <el-collapse class="group-collapse">
+              <el-collapse-item :name="group.id">
+                <template #title>
+                  <div class="group-title">
+                    <span>{{ group.name }}</span>
+                    <el-tag size="small" type="info">
+                      {{ getGroupSelectedPermissionCount(group.id) }}/{{ resourcePermissions.length }}
+                    </el-tag>
+                  </div>
+                </template>
+                <el-checkbox-group 
+                  v-model="groupPermissions[group.id]"
+                  :disabled="permissionStore.selectedRole.protected"
+                >
+                  <el-checkbox
+                    v-for="perm in resourcePermissions"
+                    :key="perm.id"
+                    :label="perm.id"
+                    class="permission-item"
+                    :disabled="permissionStore.selectedRole.protected"
+                  >
+                    {{ perm.name }}
+                  </el-checkbox>
+                </el-checkbox-group>
+              </el-collapse-item>
+            </el-collapse>
+          </div>
+        </el-tab-pane>
+      </el-tabs>
     </div>
     <div class="card-footer">
       <el-button 
         type="primary" 
         @click="savePermissions"
         :disabled="permissionStore.selectedRole.protected"
-        :loading="permissionStore.isLoading"
+        :loading="permissionStore.isLoading || isGroupLoading"
       >
         <component :is="getIconComponent('Check')" />
         <span>保存权限</span>
@@ -49,10 +83,11 @@
 </template>
 
 <script setup lang="ts">
-import { watch, onMounted } from 'vue'
+import { ref, watch, onMounted, computed } from 'vue'
 import { ElMessage } from 'element-plus'
 import { getIconComponent } from '@/utils/iconMap.ts'
 import { usePermissionStore } from '@/stores/permission.ts'
+import api from '@/api'
 import type { Role } from '@/struct/rbac.ts'
 
 const props = defineProps<{
@@ -64,23 +99,126 @@ const emit = defineEmits<{
 }>()
 
 const permissionStore = usePermissionStore()
+const activeTab = ref('system')
+const resourceGroups = ref<any[]>([])
+const resourcePermissions = ref<any[]>([])
+const groupPermissions = ref<Record<number, number[]>>({})
+const isGroupLoading = ref(false)
 
-const savePermissions = async () => {
-  const result = await permissionStore.savePermissions()
-  if (result.success) {
-    ElMessage.success(result.message)
-    emit('permission-saved')
-  } else {
-    ElMessage.warning(result.message)
+const getGroupSelectedPermissionCount = (groupId: number) => {
+  return groupPermissions.value[groupId]?.length || 0
+}
+
+const loadResourceGroups = async () => {
+  try {
+    const res = await api.groupApi.getGroup({})
+    if (res.data.code === 200) {
+      resourceGroups.value = res.data.detail || []
+    }
+  } catch (error) {
+    console.error('加载资源组失败:', error)
   }
 }
 
-// 监听角色变化，更新 store 中的选中角色
+const loadResourcePermissions = async () => {
+  try {
+    const res = await api.permissionApi.getPermissionList({})
+    if (res.data.code === 200) {
+      resourcePermissions.value = (res.data.detail || []).filter((p: any) => 
+        p.scope === 'resource' || (p.id >= 21 && p.id <= 31)
+      )
+    }
+  } catch (error) {
+    console.error('加载资源权限失败:', error)
+  }
+}
+
+const loadGroupPermissions = async () => {
+  if (!props.selectedRole) return
+  
+  isGroupLoading.value = true
+  try {
+    const res = await api.permissionApi.getGroupPermission({ role_id: props.selectedRole.id })
+    if (res.data.code === 200) {
+      const auths = res.data.detail || []
+      const perms: Record<number, number[]> = {}
+      
+      resourceGroups.value.forEach(group => {
+        perms[group.id] = []
+      })
+      
+      auths.forEach((auth: any) => {
+        if (!perms[auth.resource_group]) {
+          perms[auth.resource_group] = []
+        }
+        perms[auth.resource_group].push(auth.permission)
+      })
+      
+      groupPermissions.value = perms
+    }
+  } catch (error) {
+    console.error('加载组权限失败:', error)
+  } finally {
+    isGroupLoading.value = false
+  }
+}
+
+const savePermissions = async () => {
+  if (activeTab.value === 'system') {
+    const result = await permissionStore.savePermissions()
+    if (result.success) {
+      ElMessage.success(result.message)
+      emit('permission-saved')
+    } else {
+      ElMessage.warning(result.message)
+    }
+  } else {
+    isGroupLoading.value = true
+    try {
+      const groups = Object.entries(groupPermissions.value)
+        .filter(([_, perms]) => perms.length > 0)
+        .map(([groupId, perms]) => ({
+          id: parseInt(groupId),
+          permission: perms
+        }))
+      
+      const res = await api.permissionApi.setGroupPermission({
+        role_id: props.selectedRole?.id,
+        groups
+      })
+      
+      if (res.data.code === 200) {
+        ElMessage.success('资源组权限保存成功')
+        emit('permission-saved')
+      } else {
+        ElMessage.error(res.data.detail || '保存失败')
+      }
+    } catch (error) {
+      console.error('保存组权限失败:', error)
+      ElMessage.error('保存失败')
+    } finally {
+      isGroupLoading.value = false
+    }
+  }
+}
+
 watch(() => props.selectedRole, (newRole) => {
   permissionStore.setSelectedRole(newRole)
+  if (newRole) {
+    loadGroupPermissions()
+  }
 }, { immediate: true })
 
-// 组件初始化时初始化 store
+watch(activeTab, async (newTab) => {
+  if (newTab === 'resource') {
+    await loadResourceGroups()
+    await loadResourcePermissions()
+    if (props.selectedRole) {
+      await loadGroupPermissions()
+    }
+  }
+})
+
 onMounted(async () => {
   await permissionStore.initialize()
 })
@@ -115,6 +253,12 @@ $bg-light: #f8f9fa;
     overflow: auto;
     padding: 0 16px;
 
+    .permission-tabs {
+      :deep(.el-tabs__content) {
+        overflow: auto;
+      }
+    }
+
     .permission-section {
       margin-bottom: 24px;
 
@@ -145,6 +289,27 @@ $bg-light: #f8f9fa;
           margin-top: 4px;
           margin-left: 20px;
         }
+      }
+    }
+
+    .resource-group-section {
+      margin-bottom: 16px;
+
+      .group-collapse {
+        :deep(.el-collapse-item__header) {
+          padding: 0 12px;
+        }
+        
+        :deep(.el-collapse-item__content) {
+          padding: 12px;
+        }
+      }
+
+      .group-title {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        width: 100%;
       }
     }
   }

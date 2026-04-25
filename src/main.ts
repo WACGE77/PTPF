@@ -6,10 +6,9 @@ import router from './router'
 import ElementPlus from 'element-plus'
 import zhCn from 'element-plus/es/locale/lang/zh-cn'
 import 'element-plus/dist/index.css'
-import { initializeSSHBlacklist } from './utils/sshBlacklist'
+import { initializeDangerCmdAlert } from './utils/dangerCmdAlert'
 
-// 初始化SSH黑名单功能
-initializeSSHBlacklist().catch(console.error)
+initializeDangerCmdAlert().catch(console.error)
 
 // 创建app实例
 const app = createApp(App)

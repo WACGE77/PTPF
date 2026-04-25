@@ -1,9 +1,9 @@
 import axios from 'axios'
 import { ElMessage } from 'element-plus'
 
-const protocol = 'http:'
-const host = 'localhost:8000'
-const wsProtocol = 'ws:'
+const protocol = 'https:'
+const host = 'www.wacgee.icu'
+const wsProtocol = 'wss:'
 
 const BASE_URL = `${protocol}//${host}/api`
 const BASE_WS_URL = `${wsProtocol}//${host}/api`

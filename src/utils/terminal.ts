@@ -6,7 +6,6 @@ import { FitAddon } from 'xterm-addon-fit'
 import 'xterm/css/xterm.css'
 import type { TerminalData } from '@/struct'
 export class Shell {
-  //private
   public term: Terminal
   private readonly fitAddon: FitAddon
   private websocket: WebSocket | null = null
@@ -17,13 +16,13 @@ export class Shell {
   private OnResize: IDisposable | null = null
   public cleanup?: () => void
   public onStatusChange?: () => void
+  public onData?: (data: any) => void
   private errorMessage: string = ''
   
   constructor() {
     this.term = new Terminal({
       fontSize: 14,
       theme: {
-        // 主题颜色
         background: '#2f4050',
         foreground: '#fff',
       },
@@ -68,7 +67,18 @@ export class Shell {
       this.lock = false
     }
     this.websocket.onmessage = (event: MessageEvent) => {
-      this.term.write(event.data)
+      const rawData = event.data
+      try {
+        const msg = JSON.parse(rawData)
+        if (msg.type === 'danger_alert') {
+          this.handleDangerAlert(msg.data || msg)
+          return
+        }
+      } catch {}
+      this.term.write(rawData)
+      if (this.onData) {
+        try { this.onData(rawData) } catch (e) {}
+      }
     }
     this.websocket.onerror = (error) => {
       console.error('WebSocket error:', error)
@@ -120,6 +130,16 @@ export class Shell {
     this.cleanup = () => {
       window.removeEventListener('resize', resizeHandler)
       this.term.dispose()
+    }
+  }
+
+  public handleDangerAlert(data: { command: string; reason: string }) {
+    const warning = `\r\n\x1b[31m⚠️ 危险命令告警: ${data.command}\x1b[0m\r\n`
+      + `\x1b[33m原因: ${data.reason}\x1b[0m\r\n`
+      + `\x1b[32m命令已执行，已记录审计日志。\x1b[0m\r\n`
+    this.term.write(warning)
+    if (this.onData) {
+      try { this.onData(JSON.stringify({ type: 'danger_alert', data })) } catch (e) {}
     }
   }
 

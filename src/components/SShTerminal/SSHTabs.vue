@@ -74,6 +74,13 @@
               </el-button>
             </div>
           </div>
+          
+          <!-- MySQL 工作区 -->
+          <MySQLWorkspace
+            v-if="tab.type === 'mysql'"
+            :mysql-shell="tab.shell"
+            class="mysql-workspace-wrapper"
+          />
         </div>
       </el-tab-pane>
     </el-tabs>
@@ -85,7 +92,9 @@ import { More, Monitor, Connection, Loading, WarningFilled } from '@element-plus
 import type { Dom, terminalTab } from '@/struct/terminal.ts'
 import Shell from '@/utils/terminal.ts'
 import RdpShell from '@/utils/rdpTerminal.ts'
+import MysqlShell from '@/utils/mysqlTerminal.ts'
 import BlankPage from '@/components/SShTerminal/BlankPage.vue'
+import MySQLWorkspace from '@/components/MysqlBrowser/MySQLWorkspace.vue'
 
 const tabs = ref<any[]>([])
 const activeTab = ref<string>()
@@ -94,7 +103,7 @@ const find_ele = (key: string) => {
   return tabs.value.find(tab => tab.name === key)
 }
 
-const session_add = async (resource: number, voucher: number, token: string, resourceName: string, type: 'ssh' | 'rdp' = 'ssh') => {
+const session_add = async (resource: number, voucher: number, token: string, resourceName: string, type: 'ssh' | 'rdp' | 'mysql' = 'ssh') => {
   console.log('session_add 调用, type:', type)
   const key = `${type}_${resource}_${Date.now()}`
   let shell: any
@@ -102,25 +111,45 @@ const session_add = async (resource: number, voucher: number, token: string, res
   if (type === 'ssh') {
     console.log('创建 SSH Shell')
     shell = new Shell()
-  } else {
+  } else if (type === 'rdp') {
     console.log('创建 RDP Shell')
     shell = new RdpShell()
+  } else if (type === 'mysql') {
+    console.log('创建 MySQL Shell')
+    shell = new MysqlShell()
+  } else {
+    console.error('未知的连接类型:', type)
+    return false
   }
   
-  shell.onStatusChange = () => {
-    tabs.value = [...tabs.value]
-  }
-  
-  const instance = {
-    name: key,
-    type: type,
-    resourceName: resourceName,
-    resourceId: resource,
-    voucherId: voucher,
-    token: token,
-    shell: shell,
-    ele: null
-  }
+    // 同步状态/日志到 tab 实例
+    const instance = {
+      name: key,
+      type: type,
+      resourceName: resourceName,
+      resourceId: resource,
+      voucherId: voucher,
+      token: token,
+      shell: shell,
+      ele: null,
+      status: 'disconnected',
+      errorMessage: '',
+      logs: [] as Array<{ time: number; text: string }>
+    }
+
+    shell.onStatusChange = () => {
+      instance.status = shell.getStatus?.() || instance.status
+      instance.errorMessage = shell.getErrorMessage?.() || ''
+      tabs.value = [...tabs.value]
+    }
+    shell.onData = (data: any) => {
+      try {
+        const text = typeof data === 'string' ? data : JSON.stringify(data)
+        instance.logs.push({ time: Date.now(), text })
+        if (instance.logs.length > 200) instance.logs.shift()
+        tabs.value = [...tabs.value]
+      } catch (e) {}
+    }
   
   tabs.value.push(instance)
   activeTab.value = instance.name
@@ -149,11 +178,24 @@ const reconnectTab = async (tab: terminalTab) => {
     tab.ele.innerHTML = ''
     if (tab.type === 'ssh') {
       tab.shell = new Shell()
-    } else {
+    } else if (tab.type === 'rdp') {
       tab.shell = new RdpShell()
+    } else if (tab.type === 'mysql') {
+      tab.shell = new MysqlShell()
     }
     tab.shell.onStatusChange = () => {
+      tab.status = tab.shell.getStatus?.() || tab.status
+      tab.errorMessage = tab.shell.getErrorMessage?.() || ''
       tabs.value = [...tabs.value]
+    }
+    tab.shell.onData = (d: any) => {
+      try {
+        const text = typeof d === 'string' ? d : JSON.stringify(d)
+        tab.logs = tab.logs || []
+        tab.logs.push({ time: Date.now(), text })
+        if (tab.logs.length > 200) tab.logs.shift()
+        tabs.value = [...tabs.value]
+      } catch (e) {}
     }
     tab.shell.mount(tab.ele)
   }

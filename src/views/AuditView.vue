@@ -15,6 +15,9 @@
         <el-tab-pane label="会话日志" name="session">
           <SessionLogTab />
         </el-tab-pane>
+        <el-tab-pane label="告警日志" name="alert">
+          <ProbeLogManager />
+        </el-tab-pane>
       </el-tabs>
     </div>
   </div>
@@ -25,6 +28,7 @@ import { ref } from 'vue'
 import LoginLogTab from '@/components/Audit/LoginLogTab.vue'
 import OperaLogTab from '@/components/Audit/OperaLogTab.vue'
 import SessionLogTab from '@/components/Audit/SessionLogTab.vue'
+import ProbeLogManager from '@/components/AlertManager/AlertLogManager.vue'
 
 const activeTab = ref('login')
 </script>

@@ -156,6 +156,7 @@
       <ResetPassword
         v-model:user="currentUser"
         ref="passwdRef"
+        @submit-success="closePasswdDialog"
       />
       <template #footer>
         <ConfirmCancelBtnGroup

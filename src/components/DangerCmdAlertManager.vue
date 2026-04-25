@@ -1,8 +1,7 @@
 <template>
-  <div class="ssh-blacklist-manager">
-    <h2>SSH黑名单管理</h2>
+  <div class="danger-cmd-alert-manager">
+    <h2>危险命令告警管理</h2>
     
-    <!-- 系统组选择 -->
     <div class="system-group-selector">
       <el-select v-model="selectedGroupId" placeholder="选择系统组" @change="handleGroupChange">
         <el-option
@@ -17,7 +16,6 @@
       </el-button>
     </div>
     
-    <!-- 规则列表 -->
     <el-card class="rules-card" v-if="selectedGroupId">
       <template #header>
         <div class="card-header">
@@ -36,7 +34,7 @@
         </el-table-column>
         <el-table-column prop="priority" label="优先级" width="100" />
         <el-table-column prop="description" label="规则描述" />
-        <el-table-column prop="create_date" label="创建时间" width="180" />
+        <el-table-column prop="created_at" label="创建时间" width="180" />
         <el-table-column label="操作" width="150">
           <template #default="scope">
             <el-button type="primary" size="small" @click="editRule(scope.row)" :disabled="!hasPermission">
@@ -64,29 +62,33 @@
         />
       </div>
     </el-card>
-    
-    <!-- 拦截日志 -->
+
     <el-card class="logs-card" v-if="selectedGroupId">
       <template #header>
         <div class="card-header">
-          <span>拦截日志</span>
+          <span>告警日志（来自审计系统）</span>
+          <el-button type="primary" size="small" @click="refreshLogs">刷新</el-button>
         </div>
       </template>
-      <el-table :data="logs" style="width: 100%">
-        <el-table-column prop="time" label="时间" width="180">
+      <el-table :data="logs" style="width: 100%" v-loading="loadingLogs">
+        <el-table-column prop="time" label="触发时间" width="180">
           <template #default="scope">
             {{ formatTime(scope.row.time) }}
           </template>
         </el-table-column>
-        <el-table-column prop="target" label="命令" />
-        <el-table-column prop="reason" label="原因" />
+        <el-table-column prop="target" label="命令内容" />
+        <el-table-column prop="reason" label="匹配规则">
+          <template #default="scope">
+            <el-tag type="danger" size="small">{{ scope.row.reason }}</el-tag>
+          </template>
+        </el-table-column>
       </el-table>
-      <div v-if="logs.length === 0" class="empty-data">
-        暂无拦截日志
+      <div v-if="!loadingLogs && logs.length === 0" class="empty-data">
+        <p>暂无告警日志</p>
+        <p class="tips">提示：在终端中执行匹配危险命令规则的命令后会在此显示记录</p>
       </div>
     </el-card>
-    
-    <!-- 添加/编辑规则对话框 -->
+
     <el-dialog
       v-model="showAddRuleDialog"
       :title="editingRule ? '编辑规则' : '添加规则'"
@@ -105,7 +107,7 @@
         </el-form-item>
         
         <el-form-item label="匹配模式">
-          <el-input v-model="form.pattern" placeholder="输入匹配模式" />
+          <el-input v-model="form.pattern" placeholder="输入匹配模式（如 rm -rf /）" />
         </el-form-item>
         
         <el-form-item label="匹配类型">
@@ -124,7 +126,7 @@
           <el-input
             v-model="form.description"
             type="textarea"
-            placeholder="输入规则描述"
+            placeholder="输入规则描述（如：禁止删除系统文件）"
             rows="3"
           />
         </el-form-item>
@@ -142,36 +144,25 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue'
 import { ElMessage, ElMessageBox } from 'element-plus'
-import { usePermissionStore } from '@/stores/permission'
+import { useRouteStore } from '@/stores/route'
 import { resourceStore } from '@/stores/resource'
-import { sshBlacklistManager } from '@/utils/sshBlacklist'
-import type { BlacklistRule, BlacklistLog } from '@/utils/sshBlacklist'
+import { dangerCmdAlertManager } from '@/utils/dangerCmdAlert'
+import type { DangerCmdRule, DangerCmdLog } from '@/utils/dangerCmdAlert'
 
-const permissionStore = usePermissionStore()
+const routeStore = useRouteStore()
 const resourceStoreInstance = resourceStore()
 
-// 系统组数据
 const groups = computed(() => resourceStoreInstance.groups)
-
-// 选中的系统组ID
 const selectedGroupId = ref<string>('')
-
-// 规则列表
-const rules = ref<BlacklistRule[]>([])
-
-// 日志列表
-const logs = ref<BlacklistLog[]>([])
-
-// 分页相关
+const rules = ref<DangerCmdRule[]>([])
+const logs = ref<DangerCmdLog[]>([])
+const loadingLogs = ref(false)
 const currentPage = ref(1)
 const pageSize = ref(10)
 const totalRules = ref(0)
-
-// 添加/编辑规则对话框
 const showAddRuleDialog = ref(false)
-const editingRule = ref<BlacklistRule | null>(null)
+const editingRule = ref<DangerCmdRule | null>(null)
 
-// 表单数据
 const form = ref({
   group_id: '',
   pattern: '',
@@ -180,45 +171,31 @@ const form = ref({
   description: ''
 })
 
-// 检查是否有权限
 const hasPermission = computed(() => {
-  return permissionStore.hasPermission('ssh_filter')
+  return routeStore.hasPermission('/danger-cmd-alert')
 })
 
-// 加载数据
 const loadData = async () => {
   if (!selectedGroupId.value) return
   
   try {
-    console.log('开始加载数据，selectedGroupId:', selectedGroupId.value)
-    // 同步规则
-    const syncedResult = await sshBlacklistManager.syncRules(
+    const syncedResult = await dangerCmdAlertManager.syncRules(
       selectedGroupId.value,
       currentPage.value,
       pageSize.value
     )
-    console.log('同步规则结果:', syncedResult)
     rules.value = syncedResult.rules
     totalRules.value = syncedResult.total
-    console.log('过滤后的规则:', rules.value)
-    console.log('总规则数:', totalRules.value)
-    // 获取日志
-    logs.value = sshBlacklistManager.getLogs()
-    console.log('日志列表:', logs.value)
+    await refreshLogs()
   } catch (error) {
     console.error('加载数据失败:', error)
     ElMessage.error('加载数据失败')
   }
 }
 
-// 加载系统组数据
 const loadGroups = async () => {
   try {
-    console.log('开始加载系统组数据')
     await resourceStoreInstance.getGroups()
-    console.log('系统组数据加载完成，数量:', resourceStoreInstance.groups.length)
-    
-    // 如果有系统组，默认选择第一个
     if (resourceStoreInstance.groups.length > 0 && !selectedGroupId.value) {
       selectedGroupId.value = resourceStoreInstance.groups[0].id.toString()
       form.value.group_id = selectedGroupId.value
@@ -230,7 +207,6 @@ const loadGroups = async () => {
   }
 }
 
-// 分页变化处理
 const handleSizeChange = (size: number) => {
   pageSize.value = size
   loadData()
@@ -241,20 +217,38 @@ const handleCurrentChange = (current: number) => {
   loadData()
 }
 
-// 处理系统组变化
 const handleGroupChange = async () => {
   await loadData()
-  // 更新表单中的系统组
   form.value.group_id = selectedGroupId.value
 }
 
-// 组件挂载时加载系统组数据
+const refreshLogs = async () => {
+  loadingLogs.value = true
+  try {
+    const res = await requests.get('/audit/shell_op/', { 
+      blocked: true,
+      page_number: 1,
+      page_size: 20
+    })
+    const response = res.data
+    const remoteLogs = response.results || response.detail || response.success || []
+    logs.value = remoteLogs.map((log: any) => ({
+      time: new Date(log.operation_time).getTime(),
+      target: log.content,
+      reason: log.block_message || '命中危险命令规则'
+    }))
+  } catch (error) {
+    console.error('加载日志失败:', error)
+    logs.value = dangerCmdAlertManager.getLogs()
+  } finally {
+    loadingLogs.value = false
+  }
+}
+
 onMounted(async () => {
-  console.log('组件挂载，开始获取系统组数据')
   await loadGroups()
 })
 
-// 添加规则
 const addRule = () => {
   if (!hasPermission.value) {
     ElMessage.warning('您没有添加规则的权限')
@@ -277,8 +271,7 @@ const addRule = () => {
   showAddRuleDialog.value = true
 }
 
-// 编辑规则
-const editRule = (rule: BlacklistRule) => {
+const editRule = (rule: DangerCmdRule) => {
   if (!hasPermission.value) {
     ElMessage.warning('您没有编辑规则的权限')
     return
@@ -295,7 +288,6 @@ const editRule = (rule: BlacklistRule) => {
   showAddRuleDialog.value = true
 }
 
-// 保存规则
 const saveRule = async () => {
   if (!hasPermission.value) {
     ElMessage.warning('您没有保存规则的权限')
@@ -314,8 +306,7 @@ const saveRule = async () => {
   
   try {
     if (editingRule.value) {
-      // 更新规则
-      const result = await sshBlacklistManager.updateRule(editingRule.value.id, {
+      const result = await dangerCmdAlertManager.updateRule(editingRule.value.id, {
         group_id: form.value.group_id,
         pattern: form.value.pattern,
         type: form.value.type,
@@ -328,8 +319,7 @@ const saveRule = async () => {
         ElMessage.error('规则更新失败')
       }
     } else {
-      // 添加新规则
-      const result = await sshBlacklistManager.addRule({
+      const result = await dangerCmdAlertManager.addRule({
         group_id: form.value.group_id,
         pattern: form.value.pattern,
         type: form.value.type,
@@ -352,7 +342,6 @@ const saveRule = async () => {
   }
 }
 
-// 删除规则
 const deleteRule = async (ruleId: string) => {
   if (!hasPermission.value) {
     ElMessage.warning('您没有删除规则的权限')
@@ -365,7 +354,7 @@ const deleteRule = async (ruleId: string) => {
     type: 'warning'
   }).then(async () => {
     try {
-      const result = await sshBlacklistManager.deleteRule(ruleId)
+      const result = await dangerCmdAlertManager.deleteRule(ruleId)
       if (result) {
         ElMessage.success('规则删除成功')
         await loadData()
@@ -376,45 +365,31 @@ const deleteRule = async (ruleId: string) => {
       ElMessage.error('删除规则失败')
       console.error('删除规则失败:', error)
     }
-  }).catch(() => {
-    // 取消删除
-  })
+  }).catch(() => {})
 }
 
-// 格式化时间
 const formatTime = (timestamp: number) => {
   return new Date(timestamp).toLocaleString()
 }
 
-// 获取匹配类型标签
 const getTypeTag = (type: string) => {
   switch (type) {
-    case 'exact':
-      return 'primary'
-    case 'prefix':
-      return 'success'
-    case 'regex':
-      return 'warning'
-    default:
-      return 'info'
+    case 'exact': return 'danger'
+    case 'prefix': return 'warning'
+    case 'regex': return 'info'
+    default: return 'info'
   }
 }
 
-// 获取匹配类型文本
 const getTypeText = (type: string) => {
   switch (type) {
-    case 'exact':
-      return '精确匹配'
-    case 'prefix':
-      return '前缀匹配'
-    case 'regex':
-      return '正则匹配'
-    default:
-      return '未知'
+    case 'exact': return '精确匹配'
+    case 'prefix': return '前缀匹配'
+    case 'regex': return '正则匹配'
+    default: return '未知'
   }
 }
 
-// 监听系统组变化
 watch(() => groups.value, async (newGroups) => {
   if (newGroups.length > 0 && !selectedGroupId.value) {
     selectedGroupId.value = newGroups[0].id.toString()
@@ -422,28 +397,21 @@ watch(() => groups.value, async (newGroups) => {
   }
 }, { deep: true })
 
-// 组件挂载时
 onMounted(async () => {
-  console.log('组件挂载，开始获取系统组数据')
-  // 获取系统组数据
   if (groups.value.length === 0) {
     await resourceStoreInstance.getGroups(true)
   }
   
-  console.log('系统组数据:', groups.value)
-  
-  // 如果有系统组，默认选择第一个
   if (groups.value.length > 0) {
     selectedGroupId.value = groups.value[0].id.toString()
   }
   
-  // 加载数据
   await loadData()
 })
 </script>
 
 <style scoped>
-.ssh-blacklist-manager {
+.danger-cmd-alert-manager {
   padding: 20px;
 }
 

@@ -116,17 +116,25 @@ const handleLogin = async () => {
   isLoginLoading.value = true
   try {
     const res = await api.authApi.login(loginForm.value)
+    console.log('登录响应:', res)
+    console.log('响应数据:', res.data)
+    
     if (res.data.code == 200) {
       let token = null
       if (res.data.token) {
         token = res.data.token.access
       } else if (res.data.detail && res.data.detail.token) {
         token = res.data.detail.token.access
+      } else if (res.data.detail && res.data.detail.access) {
+        token = res.data.detail.access
       }
+      
+      console.log('提取的token:', token)
       
       if (token) {
         localStorage.setItem('token', token)
         ElMessage.success('登录成功！')
+        console.log('准备跳转到主页...')
         await router.push('/home')
       } else {
         ElMessage.error('登录失败：响应格式错误')

@@ -149,7 +149,8 @@ const toggleCollapse = () => {
 interface MenuItem {
   index: string
   label: string
-  icon: IconName // 严格限制为iconMap中的图标名
+  icon: IconName
+  requirePermission?: string
   children?: MenuItem[]
 }
 
@@ -201,16 +202,58 @@ const staticMenuList = ref<MenuItem[]>([
     icon: 'Notebook'
   },
   {
-    index: '/ssh-blacklist',
-    label: 'SSH黑名单',
-    icon: 'Lock'
+    index: '/danger-cmd-alert',
+    label: '危险命令告警',
+    icon: 'Warning',
+    requirePermission: '/danger-cmd-alert'
+  },
+  {
+    index: '/danger-cmd-log',
+    label: '告警日志',
+    icon: 'Document',
+    requirePermission: '/audit'
   }
 ])
 
-// 从routeStore获取动态菜单数据，如果没有则使用静态菜单
+// 转换后端路由数据为菜单格式
+const convertRouteToMenu = (route: any): MenuItem => {
+  const menuItem: MenuItem = {
+    index: route.path,
+    label: route.meta?.title || route.path,
+    icon: (route.meta?.icon || 'Document') as IconName
+  }
+  
+  if (route.children && route.children.length > 0) {
+    menuItem.children = route.children.map((child: any) => convertRouteToMenu(child))
+  }
+  
+  return menuItem
+}
+
+// 从routeStore获取动态菜单数据
 const dynamicMenuList = computed(() => {
-  // 始终使用静态菜单数据，确保SSH黑名单菜单项显示
-  return staticMenuList.value
+  console.log('计算dynamicMenuList, routeStore.routes:', routeStore.routes)
+  
+  const filterByPermission = (menus: MenuItem[]): MenuItem[] => {
+    return menus.filter(menu => {
+      if (menu.requirePermission && !routeStore.hasPermission(menu.requirePermission)) {
+        return false
+      }
+      if (menu.children) {
+        menu.children = filterByPermission(menu.children)
+        return menu.children.length > 0
+      }
+      return true
+    })
+  }
+
+  if (routeStore.routes && routeStore.routes.length > 0) {
+    console.log('使用动态路由数据')
+    return filterByPermission(routeStore.routes.map((route: any) => convertRouteToMenu(route)))
+  }
+  
+  console.log('使用静态菜单作为备用')
+  return filterByPermission(staticMenuList.value)
 })
 
 // 监听路由变化，更新激活的菜单

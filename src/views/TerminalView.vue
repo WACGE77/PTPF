@@ -44,6 +44,7 @@
               <div class="node-info">
                 <el-icon class="node-icon">
                   <Monitor v-if="data.protocol?.name === 'RDP'" />
+                  <Coin v-else-if="data.protocol?.name === 'MySQL'" />
                   <Connection v-else />
                 </el-icon>
                 <span class="node-label">{{ data.name }}</span>
@@ -95,7 +96,7 @@
         >
           <el-tab-pane
             v-for="tab in tabs"
-            :key="tab.name"
+            :key="`${tab.name}-${tab.refreshKey}`"
             :name="tab.name"
           >
             <template #label>
@@ -135,7 +136,7 @@
             <div
               v-show="tab.name === activeTab"
               :ref="(el) => { tab.ele = el as Dom }"
-              class="terminal-area"
+              :class="['terminal-area', { 'terminal-area-mysql': tab.type === 'mysql' }]"
             >
               <!-- RDP状态覆盖层 -->
               <div v-if="tab.type === 'rdp' && getStatus(tab) !== 'connected'" class="rdp-status-overlay">
@@ -168,6 +169,14 @@
                   </el-button>
                 </div>
               </div>
+
+              <!-- MySQL 工作区 -->
+              <MySQLWorkspace
+                v-if="tab.type === 'mysql'"
+                :key="tab.refreshKey"
+                :mysql-shell="tab.shell"
+                class="mysql-workspace-wrapper"
+              />
             </div>
           </el-tab-pane>
         </el-tabs>
@@ -180,13 +189,15 @@
 import { ref, onMounted, onBeforeUnmount, watch, nextTick } from 'vue'
 import { 
   Search, Connection, Close, Monitor, Key, Link, House, 
-  More, RefreshRight, FullScreen, Loading, WarningFilled 
+  More, RefreshRight, FullScreen, Loading, WarningFilled, Coin
 } from '@element-plus/icons-vue'
 import Shell from '@/utils/terminal.ts'
 import RdpShell from '@/utils/rdpTerminal.ts'
+import MysqlShell from '@/utils/mysqlTerminal.ts'
 import type { Dom, terminalTab } from '@/struct/terminal.ts'
 import api from '@/api'
 import type { Voucher } from '@/struct/resource.ts'
+import MySQLWorkspace from '@/components/MysqlBrowser/MySQLWorkspace.vue'
 
 // 资源列表
 const resources = ref<any[]>([])
@@ -223,7 +234,8 @@ const filterNode = (value: string, data: any) => {
 
 // 连接资源
 const connectResource = async (resource: any, voucher: Voucher) => {
-  const type = resource.protocol?.name?.toLowerCase() === 'rdp' ? 'rdp' : 'ssh'
+  const protocolName = resource.protocol?.name?.toLowerCase() || ''
+  const type = protocolName === 'rdp' ? 'rdp' : protocolName === 'mysql' ? 'mysql' : 'ssh'
   const key = `${type}_${resource.id}_${voucher.id}_${Date.now()}`
   
   // 检查是否已存在相同的连接
@@ -236,15 +248,15 @@ const connectResource = async (resource: any, voucher: Voucher) => {
   }
   
   // 创建新终端
-  let shell: Shell | RdpShell
+  let shell: Shell | RdpShell | MysqlShell
   if (type === 'ssh') {
     shell = new Shell()
-  } else {
+  } else if (type === 'rdp') {
     shell = new RdpShell()
-  }
-  
-  shell.onStatusChange = () => {
-    tabs.value = [...tabs.value]
+  } else if (type === 'mysql') {
+    shell = new MysqlShell()
+  } else {
+    return
   }
   
   const token = localStorage.getItem('token') || ''
@@ -258,7 +270,15 @@ const connectResource = async (resource: any, voucher: Voucher) => {
     voucherName: voucher.name,
     token,
     shell,
-    ele: null
+    ele: null,
+    refreshKey: Date.now(),
+    status: shell.getStatus()
+  }
+  
+  // 设置回调：同时更新 status 和触发视图刷新
+  shell.onStatusChange = () => {
+    instance.status = shell.getStatus()
+    tabs.value = [...tabs.value]
   }
   
   tabs.value.push(instance)
@@ -295,20 +315,28 @@ const tabChange = (name: string) => {
 }
 
 // 重新连接tab
-const reconnectTab = async (tab: terminalTab) => {
+const reconnectTab = async (tab: any) => {
   tab.shell.close()
   if (tab.ele) {
     tab.ele.innerHTML = ''
     if (tab.type === 'ssh') {
       tab.shell = new Shell()
-    } else {
+    } else if (tab.type === 'rdp') {
       tab.shell = new RdpShell()
+    } else if (tab.type === 'mysql') {
+      tab.shell = new MysqlShell()
     }
     tab.shell.onStatusChange = () => {
+      tab.status = tab.shell.getStatus()
       tabs.value = [...tabs.value]
     }
+    tab.status = tab.shell.getStatus()
     tab.shell.mount(tab.ele)
   }
+  // 强制刷新key，让组件完全重建
+  tab.refreshKey = Date.now()
+  tabs.value = [...tabs.value]
+  await nextTick()
   await tab.shell.connect(tab.resourceId, tab.voucherId, tab.token)
 }
 
@@ -330,7 +358,7 @@ const getErrorMessage = (tab: terminalTab) => {
 
 // 获取状态文本
 const getStatusText = (tab: terminalTab): string => {
-  const status = getStatus(tab)
+  const status = tab.status || getStatus(tab)
   const statusTextMap: Record<string, string> = {
     'disconnected': '已断开',
     'connecting': '连接中',
@@ -342,7 +370,7 @@ const getStatusText = (tab: terminalTab): string => {
 
 // 获取状态标签类型
 const getStatusTagType = (tab: terminalTab): 'success' | 'warning' | 'danger' | 'info' => {
-  const status = getStatus(tab)
+  const status = tab.status || getStatus(tab)
   const tagTypeMap: Record<string, 'success' | 'warning' | 'danger' | 'info'> = {
     'disconnected': 'info',
     'connecting': 'warning',
@@ -552,6 +580,8 @@ onBeforeUnmount(() => {
           
           .status-tag {
             margin-left: 4px;
+            pointer-events: none;
+            cursor: default;
           }
           
           .tab-more-btn {
@@ -567,6 +597,17 @@ onBeforeUnmount(() => {
           height: 100%;
           position: relative;
           background-color: #000;
+          
+          &.terminal-area-mysql {
+            background-color: #fff;
+            padding: 0;
+          }
+          
+          .mysql-workspace-wrapper {
+            width: 100%;
+            height: 100%;
+            background-color: #fff;
+          }
           
           .rdp-status-overlay {
             position: absolute;

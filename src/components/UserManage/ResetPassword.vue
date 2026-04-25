@@ -5,7 +5,6 @@
     :rules="formRules"
     label-width="100px"
     class="user-form"
-    validate-on-rule-change
   >
     <el-form-item label="新密码" prop="newPassword">
       <el-input
@@ -52,8 +51,10 @@ const userData = ref<{
   confirmPassword: "",
 });
 
+const formRef = ref<any>(null);
+
 // 初始化表单数据
-const init = async () => {
+const init = () => {
   // 重置密码表单初始值
   userData.value = {
     id: user.value?.id || 0,
@@ -61,20 +62,23 @@ const init = async () => {
     newPassword: "",
     confirmPassword: "",
   };
-  await nextTick()
-  formRef.value?.validate()
+  // 确保DOM更新后清除验证
+  nextTick(() => {
+    formRef.value?.clearValidate();
+    formRef.value?.resetFields();
+  });
 };
+
 // 监听用户数据变化，初始化表单
+// 移除immediate: true，避免组件初始化时的空值触发
 watch(user, (newVal) => {
-  init();
-}, { immediate: true, deep: true });
-const formRef = ref<any>(null);
+  if (newVal && newVal.id) {
+    init();
+  }
+});
 
 // 表单校验规则
 const formRules = ref({
-  name: [
-    { required: true, message: '用户名称不能为空', trigger: 'blur' }
-  ],
   newPassword: [
     { required: true, message: '请输入新密码', trigger: 'blur' },
     { min: 6, max: 20, message: '密码长度在6-20个字符之间', trigger: 'blur' },
@@ -92,19 +96,21 @@ const formRules = ref({
       },
       trigger: 'blur'
     }
-  ],
-  remark: [
-    { max: 200, message: '重置说明长度不超过200个字符', trigger: 'blur' }
   ]
 });
+
+// 定义emit来通知父组件关闭弹窗
+const emit = defineEmits(['submit-success'])
 
 // 提交重置密码
 const submit = async () => {
   try {
     // 表单校验
     await formRef.value.validate();
-  } catch (error) {
-    ElMessage.error('表单填写有误，请检查必填项！');
+  } catch (error: any) {
+    console.error('表单验证失败:', error);
+    // Element Plus的validate()失败时，表单会自动显示错误信息
+    // 我们不需要再显示一个全局错误提示
     return;
   }
 
@@ -114,12 +120,15 @@ const submit = async () => {
       id: userData.value.id,
       password: userData.value.newPassword,
     };
+    
+    console.log('重置密码参数:', resetParams);
 
     // 调用重置密码接口
     const res = await api.userApi.updateUser(resetParams);
 
-    if (res.status === 200) {
+    if (res.data.code === 200) {
       ElMessage.success('密码重置成功！');
+      emit('submit-success');
     } else {
       ElMessage.error(res.data.detail || '密码重置失败');
     }

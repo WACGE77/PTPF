@@ -52,7 +52,8 @@ const authApi = {
 const permissionApi = {
   getSystemPermission:(data:Record<string, unknown>) => requests.get('/rbac/role/get/permission/',data),
   setSystemPermission:(data:Record<string, unknown>) => requests.post('/rbac/role/edit/permission/',data),
-  getGroupPermission:(data:Record<string, unknown>) => requests.post('/rbac/group-auth/edit/',data),
+  getGroupPermission:(data:Record<string, unknown>) => requests.get('/perm/group-auth/get/',data),
+  setGroupPermission:(data:Record<string, unknown>) => requests.post('/perm/group-auth/edit/',data),
   userBind:(data:Record<string, unknown>) => requests.post('/rbac/user/role/',data),
   getPermissionList:(data:Record<string, unknown>) => requests.get('/rbac/perm/',data)
 }
@@ -70,6 +71,41 @@ const routeApi = {
   } 
 }
 
+const smtpApi = {
+  getCurrent: () => requests.get('/alert/smtp/current/', {}),
+  getSmtp: (data: Record<string, unknown>) => requests.get('/alert/smtp/get/', data),
+  addSmtp: (data: Record<string, unknown>) => requests.post('/alert/smtp/add/', data),
+  deleteSmtp: (data: Record<string, unknown>) => requests.post('/alert/smtp/del/', data),
+  updateSmtp: (data: Record<string, unknown>) => requests.post('/alert/smtp/edit/', data),
+  testEmail: (data: Record<string, unknown>) => requests.requests.post('/alert/smtp/test-email/', data, { timeout: 15000 }),
+}
+
+const alertMethodApi = {
+  getAlertMethod: (data: Record<string, unknown>) => requests.get('/alert/method/get/', data),
+  addAlertMethod: (data: Record<string, unknown>) => requests.post('/alert/method/add/', data),
+  deleteAlertMethod: (data: Record<string, unknown>) => requests.post('/alert/method/del/', data),
+  updateAlertMethod: (data: Record<string, unknown>) => requests.post('/alert/method/edit/', data),
+}
+
+const alertTemplateApi = {
+  getAlertTemplate: (data: Record<string, unknown>) => requests.get('/alert/template/get/', data),
+  addAlertTemplate: (data: Record<string, unknown>) => requests.post('/alert/template/add/', data),
+  deleteAlertTemplate: (data: Record<string, unknown>) => requests.post('/alert/template/del/', data),
+  updateAlertTemplate: (data: Record<string, unknown>) => requests.post('/alert/template/edit/', data),
+}
+
+const probeRuleApi = {
+  getProbeRule: (data: Record<string, unknown>) => requests.get('/alert/rule/get/', data),
+  addProbeRule: (data: Record<string, unknown>) => requests.post('/alert/rule/add/', data),
+  deleteProbeRule: (data: Record<string, unknown>) => requests.post('/alert/rule/del/', data),
+  updateProbeRule: (data: Record<string, unknown>) => requests.post('/alert/rule/edit/', data),
+  toggleProbeRule: (id: number) => requests.post(`/alert/rule/${id}/toggle/`, {}),
+}
+
+const probeLogApi = {
+  getProbeLog: (data: Record<string, unknown>) => requests.get('/alert/log/get/', data),
+}
+
 export default {
   userApi,
   roleApi,
@@ -79,5 +115,10 @@ export default {
   voucherApi,
   authApi,
   auditApi,
-  routeApi
+  routeApi,
+  smtpApi,
+  alertMethodApi,
+  alertTemplateApi,
+  probeRuleApi,
+  probeLogApi
 }
